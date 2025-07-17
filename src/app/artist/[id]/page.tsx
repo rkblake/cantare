@@ -2,14 +2,19 @@ import type { Album, Artist } from '@/types';
 import AlbumCard from '@/components/AlbumCard';
 import Image from 'next/image';
 
-async function getArtistData(id: string): Promise<{ artist: Artist, albums: Album[] }> {
+type ArtistData = {
+  artist: Artist;
+  albums: Album[];
+}
+
+async function getArtistData(id: string): Promise<ArtistData> {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/artist/${id}`);
     if (!res.ok) {
       console.error("Failed to fetch artist data:", res.status);
       return { artist: {} as Artist, albums: [] };
     }
-    return await res.json();
+    return await res.json() as ArtistData;
   } catch (error) {
     console.error("Error fetching artist data:", error);
     return { artist: {} as Artist, albums: [] };

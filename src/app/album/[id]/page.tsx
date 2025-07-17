@@ -2,6 +2,11 @@ import type { Album, Track } from '@/types';
 import TrackList from '@/components/TrackList';
 import Image from 'next/image';
 
+type AlbumData = {
+  album: Album;
+  tracks: Track[];
+};
+
 async function getAlbumData(id: string): Promise<{ album: Album, tracks: Track[] }> {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/album/${id}`);
@@ -9,15 +14,24 @@ async function getAlbumData(id: string): Promise<{ album: Album, tracks: Track[]
       console.error("Failed to fetch album data:", res.status);
       return { album: {} as Album, tracks: [] };
     }
-    return await res.json();
+    const data = await res.json() as AlbumData;
+    return {
+      album: data.album,
+      tracks: data.tracks,
+    }
   } catch (error) {
     console.error("Error fetching album data:", error);
     return { album: {} as Album, tracks: [] };
   }
 }
 
-export default async function AlbumPage({ params }: { params: { id: string } }) {
-  const { album, tracks } = await getAlbumData(params.id);
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function AlbumPage({ params }: PageProps) {
+  const { id } = await params;
+  const { album, tracks } = await getAlbumData(id);
 
   return (
     <div className="space-y-12 p-4 sm:p-6 md:p-8">

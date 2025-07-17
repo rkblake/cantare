@@ -21,3 +21,6 @@ be music player controls along the bottom of the window.
 
 - Prefer functional components over classes
 - Do not alter existing formatting
+- Add types for when converting json to objects
+- strict typescript only. do not use `any`
+- add types or interfaces where necessary

@@ -2,8 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { db } from '@/database';
 import type { Album, Track } from '@/types';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
   db.read();
 

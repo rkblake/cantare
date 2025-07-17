@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { db } from '@/database';
 import { scanMusicDirectory } from '@/database/utils';
-// import type { Settings } from '@/types';
+import type { Settings } from '@/types';
 
 export async function GET(_req: NextRequest) {
   db.read();
@@ -10,8 +10,8 @@ export async function GET(_req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   db.read();
-  const body = await req.json();
-  const { action, ...settingsData } = body;
+  const body = await req.json() as { action: string, settingsData: Settings };
+  const { action, settingsData } = body;
 
   if (action === 'scan') {
     const { musicDirectory } = settingsData;

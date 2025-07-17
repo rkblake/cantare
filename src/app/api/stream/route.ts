@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import { db } from '@/database/';
+import type { Track } from '@/types';
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('q');
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
   }
 
   db.read();
-  const track = db.data.tracks.find((t: any) => t.id === id);
+  const track = db.data.tracks.find((t: Track) => t.id === id);
 
   if (!track?.filePath) {
     return NextResponse.json({ error: 'Track or file path not found' }, { status: 404 });
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
   try {
     const stat = fs.statSync(filePath);
     const fileSize = stat.size;
-    
+
     const fileStream = fs.createReadStream(filePath);
     const stream = new ReadableStream({
       start(controller) {
@@ -40,10 +41,10 @@ export async function GET(req: NextRequest) {
       headers,
     });
 
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      return NextResponse.json({ error: 'File not found for this track' }, { status: 404 });
-    }
+  } catch (error) {
+    // if (error.code === 'ENOENT') {
+    //   return NextResponse.json({ error: 'File not found for this track' }, { status: 404 });
+    // }
     console.error(`Error streaming file ${filePath}: `, error);
     return NextResponse.json({ error: 'Error streaming file' }, { status: 500 });
   }
