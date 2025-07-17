@@ -106,7 +106,7 @@ const Player: React.FC = () => {
                 value={volume}
                 onChange={handleVolumeChange}
                 className="w-24 h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider-thumb"
-                style={{ writingMode: 'vertical-rl' }}
+                style={{ transform: 'rotate(-90deg)' }}
               />
             </div>
           )}

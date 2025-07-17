@@ -172,7 +172,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (audio) {
       audio.volume = playerState.volume;
     }
-  }, [playerState.volume]);
+  }, [audioRef, playerState.volume]);
 
   useEffect(() => {
     const audio = audioRef.current;
