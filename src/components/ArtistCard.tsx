@@ -1,16 +1,13 @@
-import type { Artist, Album } from '@/types';
+import type { Artist } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
-import { db } from '@/database';
 
 interface ArtistCardProps {
   artist: Artist;
+  imageUrl: string;
 }
 
-const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
-  db.read();
-  const firstAlbum: Album | undefined = db.data.albums.find(a => a.id === artist.albumIds[0]);
-  const imageUrl = firstAlbum?.artworkPath ? `/api/artwork/${firstAlbum.id}` : '/images/default-artist.svg';
+const ArtistCard: React.FC<ArtistCardProps> = ({ artist, imageUrl }) => {
 
   return (
     <Link href={`/artist/${artist.id}`} className="block group">

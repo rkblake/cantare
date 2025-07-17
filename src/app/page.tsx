@@ -5,13 +5,14 @@ import ArtistCard from '@/components/ArtistCard'; // Component to display an art
 import { Cog6ToothIcon } from '@heroicons/react/24/solid';
 import Link from 'next/link'; // For linking to other pages
 
+
 type Response = {
   tracks: Track[];
   albums: Album[];
   artists: Artist[];
 }
 
-async function getHomepageData(): Promise<{ recentTracks: Track[], recentAlbums: Album[], featuredArtists: Artist[] }> {
+async function getHomepageData(): Promise<{ recentTracks: Track[], recentAlbums: Album[], featuredArtists: { artist: Artist, imageUrl: string }[] }> {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/search?q=`); // Example: fetches some initial data
     if (!res.ok) {
@@ -20,9 +21,14 @@ async function getHomepageData(): Promise<{ recentTracks: Track[], recentAlbums:
       return { recentTracks: [], recentAlbums: [], featuredArtists: [] };
     }
     const data = await res.json() as Response;
-    // The search endpoint returns { tracks, albums, artists }. We can use these.
-    // In a real app, /api/homepage would return specifically curated data.
-    return { recentTracks: data.tracks, recentAlbums: data.albums, featuredArtists: data.artists };
+
+    const featuredArtistsWithImages = await Promise.all(data.artists.map(async artist => {
+      const imageUrlRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/artist/image/${artist.id}`);
+      const { imageUrl } = await imageUrlRes.json() as { imageUrl: string };
+      return { artist, imageUrl };
+    }));
+
+    return { recentTracks: data.tracks, recentAlbums: data.albums, featuredArtists: featuredArtistsWithImages };
 
   } catch (error) {
     console.error("Error fetching homepage data:", error);
@@ -73,8 +79,8 @@ export default async function HomePage() {
         <section>
           <h2 className="text-2xl font-bold mb-6 text-gray-200">Featured Artists</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {featuredArtists.map(artist => (
-              <ArtistCard key={artist.id} artist={artist} />
+            {featuredArtists.map(({ artist, imageUrl }) => (
+              <ArtistCard key={artist.id} artist={artist} imageUrl={imageUrl} />
             ))}
           </div>
         </section>
