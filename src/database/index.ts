@@ -12,7 +12,7 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const dbFile = path.join(dataDir, 'db.sqlite');
+const dbFile = path.join(dataDir, 'db.json');
 
 const adapter = new JSONFileSync<DatabaseSchema>(dbFile);
 const defaultData: DatabaseSchema = {

@@ -19,8 +19,8 @@ const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
           <Image
             src={imageUrl}
             alt={artist.name ?? 'Unknown Artist'}
-            layout="fill"
-            objectFit="cover"
+            width={500}
+            height={500}
             className="rounded-full"
           />
         </div>
