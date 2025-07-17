@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
+// import type { Metadata } from "next";
 // import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { PlayerProvider } from "@/context/PlayerContext";
 import Player from "@/components/Player";
-import { ResolvingMetadata } from "next";
+// import { ResolvingMetadata } from "next";
 import Link from "next/link";
 import { HomeIcon, MagnifyingGlassIcon, CircleStackIcon, UserGroupIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 

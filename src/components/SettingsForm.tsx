@@ -22,7 +22,7 @@ const SettingsForm: React.FC<SettingsFormProps> = ({ settings, onSave, onScan, d
 
   const handleSave = (event: React.FormEvent) => {
     event.preventDefault();
-    onSave({ musicDirectory, databasePath: settings.databasePath }); // Pass updated settings
+    onSave({ musicDirectory, databasePath }); // Pass updated settings
   };
 
   const handleScan = () => {
