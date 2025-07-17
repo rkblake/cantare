@@ -21,6 +21,8 @@ interface PlayerContextType extends PlayerState {
   playPrev: () => void;
   addToQueue: (track: Track) => void;
   setVolume: (volume: number) => void;
+  removeFromQueue: (trackId: string) => void;
+  clearQueue: () => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -106,7 +108,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       if (playerState.isPlaying) {
         audio.play().catch(e => {
-          if (e.name === 'AbortError') {
+          if (e instanceof Error && e.name === 'AbortError') {
             // This error is expected when the user changes songs, so we can ignore it.
             return;
           }
@@ -168,6 +170,43 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }
 
+  const removeFromQueue = (trackId: string) => {
+    setPlayerState(prevState => {
+      const newQueue = prevState.queue.filter(t => t.id !== trackId);
+      let newTrackIndex = prevState.currentTrackIndex;
+
+      if (prevState.currentTrack?.id === trackId) {
+        // If the currently playing track is removed, play the next one
+        if (newQueue.length === 0) {
+          newTrackIndex = null;
+        } else if (newTrackIndex !== null && newTrackIndex >= newQueue.length) {
+          newTrackIndex = 0;
+        }
+      } else if (newTrackIndex !== null) {
+        // Adjust index if a track before the current one is removed
+        const removedTrackIndex = prevState.queue.findIndex(t => t.id === trackId);
+        if (removedTrackIndex < newTrackIndex) {
+          newTrackIndex--;
+        }
+      }
+
+      return {
+        ...prevState,
+        queue: newQueue,
+        currentTrackIndex: newTrackIndex,
+      };
+    });
+  };
+
+  const clearQueue = () => {
+    setPlayerState(prevState => ({
+      ...prevState,
+      queue: prevState.currentTrack ? [prevState.currentTrack] : [],
+      currentTrackIndex: prevState.currentTrack ? 0 : null,
+    }));
+  };
+
+
   const setVolume = (volume: number) => {
     const newVolume = Math.max(0, Math.min(1, volume));
     setPlayerState(prevState => ({ ...prevState, volume: newVolume }));
@@ -218,6 +257,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     playPrev,
     addToQueue,
     setVolume,
+    removeFromQueue,
+    clearQueue,
   };
 
   return (

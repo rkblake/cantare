@@ -4,7 +4,8 @@ import React from 'react';
 import { usePlayer } from '@/context/PlayerContext';
 import { formatTime } from '@/utils/formatTime';
 
-import { ForwardIcon, BackwardIcon, PlayIcon, PauseIcon, SpeakerWaveIcon } from '@heroicons/react/24/solid';
+import { ForwardIcon, BackwardIcon, PlayIcon, PauseIcon, SpeakerWaveIcon, QueueListIcon } from '@heroicons/react/24/solid';
+import QueueModal from './QueueModal';
 
 const Player: React.FC = () => {
   const {
@@ -23,11 +24,13 @@ const Player: React.FC = () => {
   } = usePlayer();
 
   const [isVolumeSliderOpen, setVolumeSliderOpen] = React.useState(false);
+  const [isQueueModalOpen, setQueueModalOpen] = React.useState(false);
 
   const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(event.target.value);
     setVolume(newVolume);
   };
+
 
   const title = currentTrack?.title ?? 'Unknown Title';
   const artist = currentTrack?.artist ?? 'Unknown Artist';
@@ -92,7 +95,7 @@ const Player: React.FC = () => {
       </div>
 
       {/* Volume, Queue etc. (Optional for basic player) */}
-      <div className="w-1/4 flex justify-end items-center">
+      <div className="w-1/4 flex justify-end items-center space-x-2">
         <div className="relative">
           <button onClick={() => setVolumeSliderOpen(!isVolumeSliderOpen)} className="p-2 rounded-full hover:bg-gray-700">
             <SpeakerWaveIcon className="h-6 w-6" />
@@ -112,7 +115,11 @@ const Player: React.FC = () => {
             </div>
           )}
         </div>
+        <button onClick={() => setQueueModalOpen(true)} className="p-2 rounded-full hover:bg-gray-700">
+          <QueueListIcon className="h-6 w-6" />
+        </button>
       </div>
+      <QueueModal isOpen={isQueueModalOpen} onClose={() => setQueueModalOpen(false)} />
     </div>
   )
 };
