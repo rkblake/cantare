@@ -1,10 +1,11 @@
-'use client';
 import type { Metadata } from "next";
 // import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { PlayerProvider } from "@/context/PlayerContext";
 import Player from "@/components/Player";
 import { ResolvingMetadata } from "next";
+import Link from "next/link";
+import { HomeIcon, MagnifyingGlassIcon, CircleStackIcon, UserGroupIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -37,7 +38,48 @@ export default function RootLayout({
           <div className="flex min-h-screen">
             {/* Sidebar - Fixed width, takes full height */}
             {/* The padding-bottom here matches the assumed player height to prevent content overlap */}
-            <aside className="w-64 bg-gray-800 text-gray-200 flex flex-col p-4 min-h-screen pb-24">
+            <aside className="w-64 bg-gray-900 text-gray-200 flex flex-col p-4 min-h-screen pb-24 space-y-4">
+              <div className="space-y-4 bg-gray-800 rounded-md p-4">
+                <h2 className="text-lg font-bold text-white">Browse</h2>
+                <nav className="space-y-2">
+                  <Link href="/" className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors">
+                    <HomeIcon className="h-6 w-6" />
+                    <span>Home</span>
+                  </Link>
+                  <Link href="/search" className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors">
+                    <MagnifyingGlassIcon className="h-6 w-6" />
+                    <span>Search</span>
+                  </Link>
+                </nav>
+              </div>
+
+              <div className="space-y-4 bg-gray-800 rounded-md p-4">
+                <h2 className="text-lg font-bold text-white">Your Library</h2>
+                <nav className="space-y-2">
+                  <Link href="/library/albums" className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors">
+                    <CircleStackIcon className="h-6 w-6" />
+                    <span>Albums</span>
+                  </Link>
+                  <Link href="/library/artists" className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors">
+                    <UserGroupIcon className="h-6 w-6" />
+                    <span>Artists</span>
+                  </Link>
+                </nav>
+              </div>
+
+              <div className="space-y-4 flex-grow flex flex-col bg-gray-800 rounded-md p-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-bold text-white">Playlists</h2>
+                  <button className="p-1 rounded-full hover:bg-gray-800">
+                    <PlusCircleIcon className="h-6 w-6" />
+                  </button>
+                </div>
+                <div className="flex-grow overflow-y-auto">
+                  {/* Playlists will be listed here */}
+                </div>
+              </div>
+
+              <div className="h-64" />
             </aside>
 
             {/* Main Content Area - Takes remaining width, scrollable */}
