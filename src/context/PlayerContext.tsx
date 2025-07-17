@@ -225,7 +225,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const handleTimeUpdate = () => setPlayerState(prevState => ({ ...prevState, currentTime: audio.currentTime }));
     const handleLoadedMetadata = () => setPlayerState(prevState => ({ ...prevState, duration: audio.duration }));
-    const handleEnded = () => playNext();
+    const handleTrackEnded = () => {
+      if (playerState.currentTrack) {
+        removeFromQueue(playerState.currentTrack.id);
+      }
+      playNext();
+    }
+
+    const handleEnded = () => handleTrackEnded();
     const handlePlay = () => setPlayerState(prevState => ({ ...prevState, isPlaying: true }));
     const handlePause = () => setPlayerState(prevState => ({ ...prevState, isPlaying: false }));
     const handleError = (e: Event) => { console.error("Audio error: ", e); };

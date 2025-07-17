@@ -28,7 +28,7 @@ const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
         <div className="space-y-2 max-h-96 overflow-y-auto">
-          {queue.map((track: Track, index: number) => (
+          {queue.map((track: Track) => (
             <div
               key={track.id}
               className={`flex items-center justify-between p-2 rounded-md cursor-pointer ${currentTrack?.id === track.id ? 'bg-blue-600/30' : 'hover:bg-gray-700/50'}`}
