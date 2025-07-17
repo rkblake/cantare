@@ -36,29 +36,29 @@ const TrackList: React.FC<TrackListProps> = ({ tracks }) => {
   return (
     <div className="space-y-2">
       {/* Header */}
-      <div className="grid grid-cols-[auto,1fr,auto] gap-4 px-4 py-2 text-sm text-gray-400 font-medium border-b border-gray-700">
+      <div className="flex items-center gap-4 px-4 py-2 text-sm text-gray-400 font-medium border-b border-gray-700">
         <div className="w-8 text-right">#</div>
         <div>Title</div>
-        <div>Duration</div>
+        <div className="flex-1 text-right">Duration</div>
       </div>
 
       {tracks.map((track, index) => (
         <div
           key={track.id}
-          className="grid grid-cols-[auto,1fr,auto] items-center gap-4 p-2 hover:bg-gray-700/50 cursor-pointer rounded-md"
+          className="items-center gap-4 p-2 hover:bg-gray-700/50 cursor-pointer rounded-md"
           onClick={() => playTrack(track)}
           onContextMenu={(e) => handleRightClick(e, track)}
         >
-          <div className="w-8 text-right text-gray-400">{index + 1}</div>
           <div className="flex items-center space-x-4 truncate">
             {/* Optional: Add artwork here if available */}
+            <div className="w-8 text-right text-gray-400">{index + 1}</div>
             {/* <Image src={track.artworkPath || '/default.png'} width={40} height={40} className="rounded" /> */}
             <div className="truncate">
-              <div className="font-semibold text-white truncate">{track.title ?? 'Unknown Title'}</div>
-              <div className="text-sm text-gray-400 truncate">{track.artist ?? 'Unknown Artist'}</div>
+              <span className="font-semibold text-white">{track.title ?? 'Unknown Title'}</span>
+              <span className="text-sm text-gray-400"> - {track.artist ?? 'Unknown Artist'}</span>
             </div>
+            <div className="flex-1 text-right text-sm text-gray-400">{track.duration ? formatTime(track.duration) : '0:00'}</div>
           </div>
-          <div className="text-sm text-gray-400">{track.duration ? formatTime(track.duration) : '0:00'}</div>
         </div>
       ))}
 

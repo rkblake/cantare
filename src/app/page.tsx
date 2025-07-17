@@ -10,17 +10,8 @@ type Response = {
   artists: Artist[];
 }
 
-// This is a Server Component by default.
-// Data fetching happens on the server before rendering.
 async function getHomepageData(): Promise<{ recentTracks: Track[], recentAlbums: Album[], featuredArtists: Artist[] }> {
-  // This function would call your backend API to get data for the homepage.
-  // Example: Fetch recent uploads, popular tracks, featured albums/artists.
-  // For demonstration, let's just fetch some data from the search endpoint
-  // or a hypothetical dedicated homepage API endpoint.
-  // Replace with actual API calls relevant to your homepage design.
   try {
-    // Example: Fetching data using the search API (assuming it returns some default results with empty query)
-    // Or better, create a specific /api/homepage endpoint.
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/search?q=`); // Example: fetches some initial data
     if (!res.ok) {
       console.error("Failed to fetch homepage data:", res.status);

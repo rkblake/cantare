@@ -96,7 +96,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const audio = audioRef.current;
     const track = playerState.currentTrack;
     if (audio && track) {
-      const streamUrl = `/api/stream/${track.id}`;
+      const streamUrl = `/api/stream?q=${track.id}`;
       if (audio.src !== streamUrl) {
         audio.src = streamUrl;
         audio.load();
@@ -168,7 +168,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const handleEnded = () => playNext();
     const handlePlay = () => setPlayerState(prevState => ({ ...prevState, isPlaying: true }));
     const handlePause = () => setPlayerState(prevState => ({ ...prevState, isPlaying: false }));
-    const handleError = (e: Event) => { console.error("Audio error: ", e); playNext(); };
+    const handleError = (e: Event) => { console.error("Audio error: ", e); };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
