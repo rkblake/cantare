@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional: Custom styles for the slider thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #3b82f6; /* blue-500 */
+  cursor: pointer;
+  border-radius: 50%;
+  margin-top: -6px; /* Adjust vertical position */
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #3b82f6; /* blue-500 */
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+input[type="range"]::-ms-thumb {
+  width: 16px;
+  height: 16px;
+  background: #3b82f6; /* blue-500 */
+  cursor: pointer;
+  border-radius: 50%;
+   margin-top: 0; /* Default vertical position */
+}
