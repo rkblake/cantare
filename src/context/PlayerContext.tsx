@@ -105,7 +105,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         audio.load();
       }
       if (playerState.isPlaying) {
-        audio.play().catch(e => console.error("Error playing audio: ", e));
+        audio.play().catch(e => {
+          if (e.name === 'AbortError') {
+            // This error is expected when the user changes songs, so we can ignore it.
+            return;
+          }
+          console.error("Error playing audio: ", e)
+        });
       } else {
         audio.pause();
       }
