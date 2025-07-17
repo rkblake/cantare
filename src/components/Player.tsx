@@ -97,7 +97,7 @@ const Player: React.FC = () => {
             <SpeakerWaveIcon className="h-6 w-6" />
           </button>
           {isVolumeSliderOpen && (
-            <div className="absolute bottom-full mb-2 right-0 bg-gray-700 rounded-lg p-2 shadow-lg">
+            <div className="absolute bottom-full mb-2 right-0 bg-gray-700 rounded-lg shadow-lg flex items-center justify-center h-32 w-12">
               <input
                 type="range"
                 min="0"
