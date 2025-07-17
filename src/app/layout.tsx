@@ -31,6 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head><title>Cantare</title></head>
       {/* Apply basic dark mode styles to the body */}
       <body className="bg-gray-900 text-gray-100 font-sans antialiased">
         {/* Wrap the entire application with the Player Provider */}
@@ -43,11 +44,11 @@ export default function RootLayout({
                 <div className="space-y-4 bg-gray-800 rounded-md p-4">
                   <h2 className="text-lg font-bold text-white">Browse</h2>
                   <nav className="space-y-2">
-                    <Link href="/" className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors">
+                    <Link href="/" className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 transition-colors">
                       <HomeIcon className="h-6 w-6" />
                       <span>Home</span>
                     </Link>
-                    <Link href="/search" className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors">
+                    <Link href="/search" className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 transition-colors">
                       <MagnifyingGlassIcon className="h-6 w-6" />
                       <span>Search</span>
                     </Link>
@@ -57,11 +58,11 @@ export default function RootLayout({
                 <div className="space-y-4 bg-gray-800 rounded-md p-4">
                   <h2 className="text-lg font-bold text-white">Your Library</h2>
                   <nav className="space-y-2">
-                    <Link href="/library/albums" className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors">
+                    <Link href="/library/albums" className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 transition-colors">
                       <CircleStackIcon className="h-6 w-6" />
                       <span>Albums</span>
                     </Link>
-                    <Link href="/library/artists" className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors">
+                    <Link href="/library/artists" className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-700 transition-colors">
                       <UserGroupIcon className="h-6 w-6" />
                       <span>Artists</span>
                     </Link>
@@ -71,7 +72,7 @@ export default function RootLayout({
                 <div className="space-y-4 flex-grow flex flex-col bg-gray-800 rounded-md p-4">
                   <div className="flex justify-between items-center">
                     <h2 className="text-lg font-bold text-white">Playlists</h2>
-                    <button className="p-1 rounded-full hover:bg-gray-800">
+                    <button className="p-1 rounded-md hover:bg-gray-700">
                       <PlusCircleIcon className="h-6 w-6" />
                     </button>
                   </div>
