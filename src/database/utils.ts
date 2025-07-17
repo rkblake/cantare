@@ -1,9 +1,9 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { parseFile } from 'music-metadata';
-import type { Track, Album, Artist } from '../types';
+import type { Track, Album, Artist } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../database';
+import { db } from '@/database';
 
 export async function scanMusicDirectory(directory: string): Promise<{ tracks: Track[], albums: Album[], artists: Artist[] }> {
   const tracks: Track[] = [];

@@ -1,6 +1,6 @@
 'use client';
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
-import type { Track } from '../types';
+import type { Track } from '@/types';
 
 interface PlayerState {
   queue: Track[],

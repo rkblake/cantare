@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import React from 'react';
-import { usePlayer } from '../context/PlayerContext';
+import { usePlayer } from '@/context/PlayerContext';
 import { formatTime } from '@/utils/formatTime';
 
 const Player: React.FC = () => {
@@ -20,7 +20,7 @@ const Player: React.FC = () => {
   const title = currentTrack?.title ?? 'Unknown Title';
   const artist = currentTrack?.artist ?? 'Unknown Artist';
   const album = currentTrack?.album ?? 'Unknown Album';
-  const artworkUrl = currentTrack?.artworkPath ? `/api/artwork/${currentTrack.id}` : '/images/default-artwork.png'; // TODO: artwork api route
+  const artworkUrl = currentTrack?.artworkPath ? `/api/artwork/${currentTrack.id}` : '/images/default-artwork.svg'; // TODO: artwork api route
 
   const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(event.target.value);

@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   db.read()
   const track = db.data.tracks.find(t => t.id === id);
 
-  if (!track || !track.filePath) {
+  if (!track?.filePath) {
     return res.status(404).json({ error: 'Track or file path not found' });
   }
 
@@ -27,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (range) {
       const parts = range.replace(/bytes=/, "").split('-');
-      if (parts.length > 0) {
+      if (parts.length >= 1 && parts[0]) {
         const start = parseInt(parts[0], 10);
         const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
 

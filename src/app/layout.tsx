@@ -1,9 +1,10 @@
 'use client';
-// import type { Metadata } from "next";
+import type { Metadata } from "next";
 // import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { PlayerProvider } from "../context/PlayerContext";
-import Player from "../components/Player";
+import { PlayerProvider } from "@/context/PlayerContext";
+import Player from "@/components/Player";
+import { ResolvingMetadata } from "next";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -19,6 +20,8 @@ import Player from "../components/Player";
 //   title: "Music Player",
 //   description: "Remote Music Streaming Player",
 // };
+//
+
 
 export default function RootLayout({
   children,

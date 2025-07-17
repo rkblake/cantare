@@ -33,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.status(200).json({ message: 'Scan complete', counts: { tracks: scanResult.tracks.length, albums: scanResult.albums, length, artists: scanResult.artists.length } });
       } catch (error: unknown) {
         console.error('Scan failed: ', error);
-        let message;
+        let message: string = '';
         if (error instanceof Error) message = error.message;
         res.status(500).json({ error: 'Scan failed', message });
       }

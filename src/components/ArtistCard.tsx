@@ -10,7 +10,7 @@ interface ArtistCardProps {
 const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
   db.read();
   const firstAlbum: Album | undefined = db.data.albums.find(a => a.id === artist.albumIds[0]);
-  const imageUrl = firstAlbum?.artworkPath ? `/api/artwork/${firstAlbum.id}` : '/images/default-artist.png';
+  const imageUrl = firstAlbum?.artworkPath ? `/api/artwork/${firstAlbum.id}` : '/images/default-artist.svg';
 
   return (
     <Link href={`/artist/${artist.id}`} className="block group">
@@ -25,6 +25,7 @@ const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
           />
         </div>
         <h3 className="font-bold text-md truncate group-hover:underline">{artist.name}</h3>
+        <p className="text-sm text-gray-400">Artist</p>
       </div>
     </Link>
   );

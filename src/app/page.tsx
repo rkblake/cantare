@@ -23,7 +23,7 @@ async function getHomepageData(): Promise<{ recentTracks: Track[], recentAlbums:
     // Or better, create a specific /api/homepage endpoint.
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/search?q=`); // Example: fetches some initial data
     if (!res.ok) {
-      console.error("Failed to fetch homepage data:", res.status, await res.text());
+      console.error("Failed to fetch homepage data:", res.status);
       // Return empty data on failure
       return { recentTracks: [], recentAlbums: [], featuredArtists: [] };
     }
@@ -43,17 +43,22 @@ export default async function HomePage() {
   const { recentTracks, recentAlbums, featuredArtists } = await getHomepageData();
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold">Welcome to Your Music Library</h1>
+    <div className="space-y-12 p-4 sm:p-6 md:p-8">
+      {/* Header */}
+      <header className="flex justify-between items-center">
+        <h1 className="text-4xl font-extrabold tracking-tight text-white">
+          Welcome Back
+        </h1>
+        {/* Optional: Add a user profile icon or other header elements here */}
+      </header>
 
       {/* Section for Recent Albums */}
       {recentAlbums.length > 0 && (
         <section>
-          <h2 className="text-2xl font-semibold mb-4">Recent Albums</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {/* Map through recent albums and render AlbumCard */}
+          <h2 className="text-2xl font-bold mb-6 text-gray-200">Recent Albums</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
             {recentAlbums.map(album => (
-              <AlbumCard key={album.id} album={album} /> // Make sure AlbumCard is implemented
+              <AlbumCard key={album.id} album={album} />
             ))}
           </div>
         </section>
@@ -62,20 +67,20 @@ export default async function HomePage() {
       {/* Section for Recent Tracks */}
       {recentTracks.length > 0 && (
         <section>
-          <h2 className="text-2xl font-semibold mb-4">Recent Tracks</h2>
-          {/* Use the TrackList component */}
-          <TrackList tracks={recentTracks} />
+          <h2 className="text-2xl font-bold mb-6 text-gray-200">Recent Tracks</h2>
+          <div className="bg-gray-800/50 rounded-lg p-4">
+            <TrackList tracks={recentTracks} />
+          </div>
         </section>
       )}
 
-      {/* Section for Featured Artists (Optional) */}
+      {/* Section for Featured Artists */}
       {featuredArtists.length > 0 && (
         <section>
-          <h2 className="text-2xl font-semibold mb-4">Featured Artists</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {/* Map through artists */}
+          <h2 className="text-2xl font-bold mb-6 text-gray-200">Featured Artists</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
             {featuredArtists.map(artist => (
-              <ArtistCard key={artist.id} artist={artist} /> // Make sure ArtistCard is implemented
+              <ArtistCard key={artist.id} artist={artist} />
             ))}
           </div>
         </section>
@@ -83,15 +88,14 @@ export default async function HomePage() {
 
       {/* Message if no music found */}
       {recentTracks.length === 0 && recentAlbums.length === 0 && featuredArtists.length === 0 && (
-        <div className="text-center text-gray-400 py-10">
-          <p className="mb-4">{"It looks like your music library hasn't been scanned yet."}</p>
-          <p>
-            Go to the{' '}
-            <Link href="/settings" className="text-blue-400 hover:underline">
-              Settings page
-            </Link>{' '}
-            to configure your music directory and initiate a scan.
+        <div className="text-center text-gray-500 py-20">
+          <h3 className="text-2xl font-semibold mb-4">Your Library is Empty</h3>
+          <p className="mb-6 max-w-md mx-auto">
+            It looks like no music has been scanned yet. Go to the settings page to add your music directory and start listening.
           </p>
+          <Link href="/settings" className="bg-blue-600 text-white font-semibold py-2 px-6 rounded-full hover:bg-blue-500 transition-colors duration-300">
+            Go to Settings
+          </Link>
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 import { LowSync } from "lowdb";
 import { JSONFileSync } from "lowdb/node";
 import path from "path";
-import type { DatabaseSchema } from "../types";
+import type { DatabaseSchema } from "@/types";
 import fs from "fs";
 
 const dataDir = process.env.NODE_ENV === 'development'

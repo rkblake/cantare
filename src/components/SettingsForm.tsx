@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Settings } from '../types';
+import type { Settings } from '@/types';
 
 interface SettingsFormProps {
   settings: Settings;
@@ -10,12 +10,12 @@ interface SettingsFormProps {
 
 const SettingsForm: React.FC<SettingsFormProps> = ({ settings, onSave, onScan, disabled }) => {
   const [musicDirectory, setMusicDirectory] = useState(settings.musicDirectory);
-  // const [databasePath, setDatabasePath] = useState(settings.databasePath); // Database path might not be user configurable easily in a web app
+  const [databasePath, setDatabasePath] = useState(settings.databasePath); // Database path might not be user configurable easily in a web app
 
   useEffect(() => {
     // Update form state if settings prop changes (e.g., after a save or initial load)
     setMusicDirectory(settings.musicDirectory);
-    // setDatabasePath(settings.databasePath);
+    setDatabasePath(settings.databasePath);
   }, [settings]);
 
 
