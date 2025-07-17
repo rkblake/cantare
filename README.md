@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cantare - A Local Music Streaming Player
+
+Cantare is a local music streaming player that allows you to scan your local music directory and stream your audio files through a sleek, modern interface, similar to Spotify or Apple Music.
+
+## Features
+
+- **Local Music Scanning:** Scan your local music directory to add all your audio files to the library.
+- **Search:** Search for songs, albums, and artists.
+- **Sleek UI:** A modern and intuitive user interface for browsing and playing your music.
+- **Player Controls:** Standard music player controls, including play/pause, next/previous, seek, and volume control.
+- **Queue Management:** Add songs to a queue, remove them, and clear the queue.
+
+## Technologies Used
+
+- **Next.js:** A React framework for building server-side rendered and static web applications.
+- **React:** A JavaScript library for building user interfaces.
+- **TypeScript:** A typed superset of JavaScript that compiles to plain JavaScript.
+- **Tailwind CSS:** A utility-first CSS framework for rapid UI development.
+- **Headless UI:** A set of unstyled, fully accessible UI components, designed to integrate beautifully with Tailwind CSS.
+- **lowdb:** A small local JSON database for storing information about your music library.
+- **pnpm:** A fast, disk space-efficient package manager.
 
 ## Getting Started
 
-First, run the development server:
+To get started with Cantare, follow these steps:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. **Clone the repository:**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   ```bash
+   git clone https://github.com/your-username/cantare.git
+   cd cantare
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. **Install dependencies:**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   pnpm install
+   ```
 
-## Learn More
+3. **Set up your music directory:**
 
-To learn more about Next.js, take a look at the following resources:
+   - Open the settings page in the application.
+   - Set the path to your local music directory.
+   - Trigger a scan to populate your music library.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. **Run the development server:**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   pnpm dev
+   ```
 
-## Deploy on Vercel
+5. **Open the application:**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contributing
+
+Contributions are welcome! If you have any ideas, suggestions, or bug reports, please open an issue or submit a pull request.
