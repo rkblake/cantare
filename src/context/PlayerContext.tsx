@@ -67,10 +67,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         indexToPlay = playerState.queue.length;
         setPlayerState(prevState => ({
           ...prevState,
-          queue: [...prevState.queue, trackOrIndex]
+          queue: [...prevState.queue, trackOrIndex],
         }));
         requestAnimationFrame(() => {
-          setPlayerState(prevState => ({ ...prevState, currentTrackIndex: indexToPlay }));
+          setPlayerState(prevState => ({ ...prevState, currentTrackIndex: indexToPlay, isPlaying: true }));
         });
         return;
       }

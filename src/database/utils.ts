@@ -31,7 +31,7 @@ export async function scanMusicDirectory(directory: string): Promise<{ tracks: T
               albumArtist: common.albumartist ?? common.artist ?? 'Unkwown Artist',
               genre: Array.isArray(common.genre) ? common.genre.join(', ') : common.genre ?? null,
               year: common.year ?? null,
-              duration: metadata.format.duration ?? null,
+              duration: Number(metadata.format.duration?.toFixed(2)) ?? null,
               trackNumber: common.track?.no,
               diskNumber: common.disk?.no,
               // artworkPath: await extrackArtwork(metadata, track.id), // TODO: extract artwork

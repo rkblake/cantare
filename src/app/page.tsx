@@ -2,6 +2,7 @@ import type { Track, Album, Artist } from '@/types'; // Import your types
 import TrackList from '@/components/TrackList'; // Component to display tracks
 import AlbumCard from '@/components/AlbumCard'; // Component to display an album card
 import ArtistCard from '@/components/ArtistCard'; // Component to display an artist card
+import { Cog6ToothIcon } from '@heroicons/react/24/solid';
 import Link from 'next/link'; // For linking to other pages
 
 type Response = {
@@ -40,7 +41,9 @@ export default async function HomePage() {
         <h1 className="text-4xl font-extrabold tracking-tight text-white">
           Welcome Back
         </h1>
-        {/* Optional: Add a user profile icon or other header elements here */}
+        <Link href="/settings" className="text-gray-400 hover:text-white">
+          <Cog6ToothIcon className="h-8 w-8" />
+        </Link>
       </header>
 
       {/* Section for Recent Albums */}
