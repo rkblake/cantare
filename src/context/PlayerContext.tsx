@@ -8,6 +8,7 @@ interface PlayerState {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
+  volume: number;
   currentTrack: Track | null;
 }
 
@@ -19,6 +20,7 @@ interface PlayerContextType extends PlayerState {
   playNext: () => void;
   playPrev: () => void;
   addToQueue: (track: Track) => void;
+  setVolume: (volume: number) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -31,6 +33,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     isPlaying: false,
     currentTime: 0,
     duration: 0,
+    volume: 1,
     currentTrack: null,
   });
 
@@ -159,6 +162,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }
 
+  const setVolume = (volume: number) => {
+    const newVolume = Math.max(0, Math.min(1, volume));
+    setPlayerState(prevState => ({ ...prevState, volume: newVolume }));
+  };
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = playerState.volume;
+    }
+  }, [playerState.volume]);
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -196,6 +211,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     playNext,
     playPrev,
     addToQueue,
+    setVolume,
   };
 
   return (

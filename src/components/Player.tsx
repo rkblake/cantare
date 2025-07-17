@@ -3,6 +3,8 @@ import React from 'react';
 import { usePlayer } from '@/context/PlayerContext';
 import { formatTime } from '@/utils/formatTime';
 
+import { ForwardIcon, BackwardIcon, PlayIcon, PauseIcon, SpeakerWaveIcon } from '@heroicons/react/24/solid';
+
 const Player: React.FC = () => {
   const {
     currentTrack,
@@ -14,8 +16,17 @@ const Player: React.FC = () => {
     playNext,
     playPrev,
     queue,
+    volume,
+    setVolume,
     // audioRef,
   } = usePlayer();
+
+  const [isVolumeSliderOpen, setVolumeSliderOpen] = React.useState(false);
+
+  const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(event.target.value);
+    setVolume(newVolume);
+  };
 
   const title = currentTrack?.title ?? 'Unknown Title';
   const artist = currentTrack?.artist ?? 'Unknown Artist';
@@ -49,17 +60,17 @@ const Player: React.FC = () => {
         {/* Buttons */}
         <div className="flex items-center space-x-4 mb-1">
           <button onClick={playPrev} className="p-2 rounded-full hover:bg-gray-700 disabled:opacity-50" disabled={!currentTrack}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.933 12.813c-.593.063-.593.953 0 1.016l3.75.44c.817.096 1.46-.593 1.46-1.4V7.717c0-.807-.643-1.496-1.46-1.593l-3.75.44c-.593.063-.593.953 0 1.016l2.25.264V12.5l-2.25.263zM6.163 13.79l3.75.44c.817.096 1.46-.593 1.46-1.4V7.717c0-.807-.643-1.496-1.46-1.593l-3.75.44c-.593.063-.593.953 0 1.016l2.25.264V12.5l-2.25.263z" /></svg>
+            <BackwardIcon className="h-6 w-6" />
           </button>
           <button onClick={togglePlayPause} className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50" disabled={!currentTrack && queue.length === 0}>
             {isPlaying ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <PauseIcon className="h-6 w-6" />
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197 2.132A1 1 0 0110 13.803V6.197a1 1 0 011.555-.832l3.197 2.132c1.104.736 1.104 2.333 0 3.069z" /></svg>
+              <PlayIcon className="h-6 w-6" />
             )}
           </button>
           <button onClick={playNext} className="p-2 rounded-full hover:bg-gray-700 disabled:opacity-50" disabled={!currentTrack}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.06 7.063a1 1 0 010 1.874l-3.197 2.132A1 1 0 009 12.803V15.7c0 .817.643 1.496 1.46 1.593l3.75.44a1 1 0 001.163-1.016l-.44-3.75a1 1 0 00-.953-1.016l-.264-.04V8.879l.264-.04a1 1 0 00.953-1.016l.44-3.75a1 1 0 00-1.163-1.016l-3.75.44a1 1 0 00-1.46 1.593V11.2" /></svg>
+            <ForwardIcon className="h-6 w-6" />
           </button>
         </div>
         {/* Slider */}
@@ -80,8 +91,26 @@ const Player: React.FC = () => {
       </div>
 
       {/* Volume, Queue etc. (Optional for basic player) */}
-      <div className="w-1/4 flex justify-end">
-        {/* Volume control, Queue button */}
+      <div className="w-1/4 flex justify-end items-center">
+        <div className="relative">
+          <button onClick={() => setVolumeSliderOpen(!isVolumeSliderOpen)} className="p-2 rounded-full hover:bg-gray-700">
+            <SpeakerWaveIcon className="h-6 w-6" />
+          </button>
+          {isVolumeSliderOpen && (
+            <div className="absolute bottom-full mb-2 right-0 bg-gray-700 rounded-lg p-2 shadow-lg">
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="w-24 h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer slider-thumb"
+                style={{ writingMode: 'vertical-rl' }}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
