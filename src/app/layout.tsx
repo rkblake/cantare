@@ -5,7 +5,8 @@ import { PlayerProvider } from "@/context/PlayerContext";
 import Player from "@/components/Player";
 // import { ResolvingMetadata } from "next";
 import Link from "next/link";
-import { HomeIcon, MagnifyingGlassIcon, CircleStackIcon, UserGroupIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
+import PlaylistSidebar from "@/components/PlaylistSidebar";
+import { HomeIcon, MagnifyingGlassIcon, CircleStackIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -69,17 +70,7 @@ export default function RootLayout({
                   </nav>
                 </div>
 
-                <div className="space-y-4 flex-grow flex flex-col bg-gray-800 rounded-md p-4">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-lg font-bold text-white">Playlists</h2>
-                    <button className="p-1 rounded-md hover:bg-gray-700">
-                      <PlusCircleIcon className="h-6 w-6" />
-                    </button>
-                  </div>
-                  <div className="flex-grow overflow-y-auto">
-                    {/* Playlists will be listed here */}
-                  </div>
-                </div>
+                <PlaylistSidebar />
 
                 <div className="h-16" />
               </div>

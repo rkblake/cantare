@@ -40,10 +40,10 @@ export default function SearchPage() {
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json() as { tracks: Track[], albums: Album[], artists: Artist[] };
         const artistsWithImages = await Promise.all(data.artists.map(async (artist: Artist) => {
           const imageUrlRes = await fetch(`/api/artist/image/${artist.id}`);
-          const { imageUrl } = await imageUrlRes.json();
+          const { imageUrl } = await imageUrlRes.json() as { imageUrl: string };
           return { artist, imageUrl };
         }));
         setResults({ ...data, artists: artistsWithImages });
@@ -60,7 +60,7 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
-    fetchResults(debouncedQuery);
+    fetchResults(debouncedQuery).catch((e) => console.error(e));
   }, [debouncedQuery, fetchResults]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

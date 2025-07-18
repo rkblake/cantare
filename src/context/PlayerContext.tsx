@@ -23,6 +23,7 @@ interface PlayerContextType extends PlayerState {
   setVolume: (volume: number) => void;
   removeFromQueue: (trackId: string) => void;
   clearQueue: () => void;
+  playPlaylist: (tracks: Track[], shuffle?: boolean) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -206,6 +207,27 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }));
   };
 
+  const playPlaylist = (tracks: Track[], shuffle = false) => {
+    if (tracks.length === 0) return;
+
+    const playlistTracks = [...tracks];
+    if (shuffle) {
+      // Fisher-Yates shuffle algorithm
+      for (let i = playlistTracks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = playlistTracks[i]!;
+        playlistTracks[i] = playlistTracks[j]!;
+        playlistTracks[j] = temp;
+      }
+    }
+
+    setPlayerState(prevState => ({
+      ...prevState,
+      queue: playlistTracks,
+      currentTrackIndex: 0,
+      isPlaying: true,
+    }));
+  };
 
   const setVolume = (volume: number) => {
     const newVolume = Math.max(0, Math.min(1, volume));
@@ -266,6 +288,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setVolume,
     removeFromQueue,
     clearQueue,
+    playPlaylist,
   };
 
   return (

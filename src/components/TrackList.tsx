@@ -1,10 +1,9 @@
 'use client';
-import React, { useState } from 'react';
-import type { Track } from '@/types';
+import React, { useState, useEffect } from 'react';
+import type { Track, Playlist } from '@/types';
 import { usePlayer } from '@/context/PlayerContext';
 import { formatTime } from '@/utils/formatTime';
 import ContextMenu from './ContextMenu';
-
 interface TrackListProps {
   tracks: Track[];
 }
@@ -12,6 +11,14 @@ interface TrackListProps {
 const TrackList: React.FC<TrackListProps> = ({ tracks }) => {
   const { playTrack, addToQueue } = usePlayer();
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number; track: Track } | null>(null);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+
+  useEffect(() => {
+    fetch('/api/playlists')
+      .then(res => res.json())
+      .then(setPlaylists)
+      .catch(console.error);
+  }, []);
 
   const handleRightClick = (event: React.MouseEvent, track: Track) => {
     event.preventDefault();
@@ -27,9 +34,23 @@ const TrackList: React.FC<TrackListProps> = ({ tracks }) => {
     handleCloseContextMenu();
   };
 
-  const handleAddToPlaylist = (track: Track, playlistId: string) => {
-    // TODO: call API to add track to playlist
-    console.log(`Add track ${track.title} to playlist ${playlistId}`);
+  const handleAddToPlaylist = async (track: Track, playlistId: string) => {
+    try {
+      const playlist = playlists.find(p => p.id === playlistId);
+      if (!playlist) return;
+
+      const updatedTrackIds = [...playlist.trackIds, track.id];
+      
+      await fetch(`/api/playlists/${playlistId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackIds: updatedTrackIds }),
+      });
+
+      console.log(`Added "${track.title}" to "${playlist.name}"`);
+    } catch (error) {
+      console.error('Failed to add track to playlist:', error);
+    }
     handleCloseContextMenu();
   };
 
@@ -74,12 +95,28 @@ const TrackList: React.FC<TrackListProps> = ({ tracks }) => {
           >
             Add to Queue
           </button>
-          <button
-            onClick={() => handleAddToPlaylist(contextMenu.track, "")}
-            className="block w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-600"
-          >
+          
+          <div className="border-t border-gray-600 my-1" />
+          
+          <div className="px-4 py-2 text-xs text-gray-400 uppercase tracking-wide">
             Add to Playlist
-          </button>
+          </div>
+          
+          {playlists.length > 0 ? (
+            playlists.map(playlist => (
+              <button
+                key={playlist.id}
+                onClick={() => handleAddToPlaylist(contextMenu.track, playlist.id)}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-600"
+              >
+                {playlist.name}
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-2 text-sm text-gray-400">
+              No playlists available
+            </div>
+          )}
         </ContextMenu>
       )}
     </div>
