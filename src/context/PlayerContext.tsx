@@ -274,7 +274,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('error', handleError);
     }
-  }, [playNext]);
+  }, [playNext, playerState.currentTrack]);
 
   const contextValue: PlayerContextType = {
     ...playerState,

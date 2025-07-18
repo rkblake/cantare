@@ -1,0 +1,8 @@
+- [ ] fix first time click on song not playing
+- [ ] handle audio error
+- [ ] hide modals when clicking outside
+- [ ] reorder tracks in playlist and queue
+- [ ] remove from playlist
+- [ ] favorite tracks and albums
+- [x] fetch album artwork
+- [ ] generate artwork thumbnails

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Playlist } from "@/types";
+import type { Playlist } from "@/types";
 import { PlusCircleIcon } from "@heroicons/react/24/outline";
 
 export default function PlaylistSidebar() {

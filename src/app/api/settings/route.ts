@@ -14,11 +14,16 @@ export async function POST(req: NextRequest) {
   const { action, settingsData } = body;
 
   if (action === 'scan') {
-    const { musicDirectory } = settingsData;
+    const musicDirectory = settingsData?.musicDirectory;
     if (!musicDirectory) {
       return NextResponse.json({ error: 'musicDirectory is required for scan' }, { status: 400 });
     }
-    db.data.settings.musicDirectory = musicDirectory;
+    
+    if (!db.data.settings) {
+      db.data.settings = { musicDirectory, databasePath: '' };
+    } else {
+      db.data.settings.musicDirectory = musicDirectory;
+    }
     db.write();
 
     try {

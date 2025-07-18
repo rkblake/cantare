@@ -6,11 +6,10 @@ import { PlayIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import type { Track } from '@/types';
 
 interface PlaylistControlsProps {
-  playlistId: string;
   tracks: Track[];
 }
 
-export default function PlaylistControls({ playlistId, tracks }: PlaylistControlsProps) {
+export default function PlaylistControls({ tracks }: PlaylistControlsProps) {
   const { playPlaylist } = usePlayer();
 
   const handlePlay = () => {

@@ -33,11 +33,12 @@ export default async function AlbumPage({ params }: PageProps) {
   const { id } = await params;
   const { album, tracks } = await getAlbumData(id);
 
+
   return (
     <div className="space-y-12 p-4 sm:p-6 md:p-8">
       <header className="flex items-center space-x-6">
         <Image
-          src={album.artworkPath ?? '/images/default-album.svg'}
+          src={album.artworkPath ? `/api/artwork/${album.id}` : '/images/default-album.svg'}
           alt={album.name ?? 'Album Artwork'}
           width={128}
           height={128}

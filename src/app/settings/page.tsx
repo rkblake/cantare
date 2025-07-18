@@ -74,7 +74,7 @@ const SettingsPage: React.FC = () => {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'scan', musicDirectory }),
+        body: JSON.stringify({ action: 'scan', settingsData: { musicDirectory } }),
       });
       const result: unknown = await res.json();
       if (!res.ok) throw new Error(`Scan failed: ${res.status} - ${(result as { error: string }).error}`);

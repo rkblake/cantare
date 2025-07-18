@@ -68,7 +68,7 @@ export default async function PlaylistPage({ params }: PageProps) {
 
       {tracks.length > 0 && (
         <div className="flex items-center space-x-4">
-          <PlaylistControls playlistId={id} tracks={tracks} />
+          <PlaylistControls tracks={tracks} />
         </div>
       )}
 

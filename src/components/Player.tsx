@@ -3,6 +3,7 @@ import Image from 'next/image';
 import React from 'react';
 import { usePlayer } from '@/context/PlayerContext';
 import { formatTime } from '@/utils/formatTime';
+import type { Album } from '@/types';
 
 import { ForwardIcon, BackwardIcon, PlayIcon, PauseIcon, SpeakerWaveIcon, QueueListIcon } from '@heroicons/react/24/solid';
 import QueueModal from './QueueModal';
@@ -20,22 +21,30 @@ const Player: React.FC = () => {
     queue,
     volume,
     setVolume,
-    // audioRef,
   } = usePlayer();
 
+  const [albums, setAlbums] = React.useState<Album[]>([]);
   const [isVolumeSliderOpen, setVolumeSliderOpen] = React.useState(false);
   const [isQueueModalOpen, setQueueModalOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch('/api/albums')
+      .then(res => res.json())
+      .then(setAlbums)
+      .catch(console.error);
+  }, []);
 
   const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(event.target.value);
     setVolume(newVolume);
   };
 
-
   const title = currentTrack?.title ?? 'Unknown Title';
   const artist = currentTrack?.artist ?? 'Unknown Artist';
-  const album = currentTrack?.album ?? 'Unknown Album';
-  const artworkUrl = currentTrack?.artworkPath ? `/api/artwork/${currentTrack.id}` : '/images/default-artwork.svg'; // TODO: artwork api route
+  const albumName = currentTrack?.album ?? 'Unknown Album';
+  
+  const album = albums.find(a => a.name === albumName && a.artist === currentTrack?.albumArtist);
+  const artworkUrl = album?.artworkPath ? `/api/artwork/${album.artworkPath}` : '/images/default-artwork.svg';
 
   const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(event.target.value);
@@ -54,9 +63,8 @@ const Player: React.FC = () => {
           height={48}
         />
         <div>
-          <div className="font-bold text-sm truncate">{title}</div>
-          <div className="text-xs text-gray-400 truncate">{artist} - {album}</div>
-        </div>
+           <div className="font-bold text-sm truncate">{title}</div>
+           <div className="text-xs text-gray-400 truncate">{artist} - {albumName}</div>        </div>
       </div>
 
       {/* Controls and Slider */}
