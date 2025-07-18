@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import type { Track, Playlist } from '@/types';
+import { useRouter } from 'next/navigation';
 import { usePlayer } from '@/context/PlayerContext';
 import { formatTime } from '@/utils/formatTime';
 import ContextMenu from './ContextMenu';
@@ -12,6 +13,7 @@ interface TrackListProps {
 
 const TrackList: React.FC<TrackListProps> = ({ tracks, playlistId }) => {
   const { playTrack, addToQueue } = usePlayer();
+  const router = useRouter();
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number; track: Track } | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
@@ -52,6 +54,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, playlistId }) => {
       });
 
       // Optimistically update the UI or refetch data
+      router.refresh();
       console.log(`Removed "${track.title}" from "${playlist.name}"`);
     } catch (error) {
       console.error('Failed to remove track from playlist:', error);
