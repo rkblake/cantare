@@ -16,7 +16,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ fil
     }
 
     const fileBuffer = await fs.readFile(filePath);
-    console.log('here');
     const extension = path.extname(filename).slice(1);
 
     return new NextResponse(fileBuffer, {

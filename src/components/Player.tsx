@@ -45,9 +45,9 @@ const Player: React.FC = () => {
   const title = currentTrack?.title ?? 'Unknown Title';
   const artist = currentTrack?.artist ?? 'Unknown Artist';
   const albumName = currentTrack?.album ?? 'Unknown Album';
-  
+
   const album = albums.find(a => a.name === albumName && a.artist === currentTrack?.albumArtist);
-  const artworkUrl = album?.artworkPath ? `/api/artwork/${album.artworkPath}` : '/images/default-artwork.svg';
+  const artworkUrl = album?.artworkPath ? `/api/artwork/${album.id}` : '/images/default-artwork.svg';
 
   const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(event.target.value);
@@ -66,8 +66,8 @@ const Player: React.FC = () => {
           height={48}
         />
         <div>
-           <div className="font-bold text-sm truncate">{title}</div>
-           <div className="text-xs text-gray-400 truncate">{artist} - {albumName}</div>        </div>
+          <div className="font-bold text-sm truncate">{title}</div>
+          <div className="text-xs text-gray-400 truncate">{artist} - {albumName}</div>        </div>
       </div>
 
       {/* Controls and Slider */}

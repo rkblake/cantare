@@ -103,8 +103,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const track = playerState.currentTrack;
     if (audio && track) {
       const streamUrl = `/api/stream?q=${track.id}`;
-      if (audio.src !== streamUrl) {
-        audio.src = streamUrl;
+      const fullStreamUrl = `${window.location.origin}${streamUrl}`;
+      if (audio.src !== fullStreamUrl) {
+        audio.src = fullStreamUrl;
         audio.load();
       }
       if (playerState.isPlaying) {
@@ -119,8 +120,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         audio.pause();
       }
     } else if (audio && !track) {
-      audio.src = '';
-      audio.load();
+      // Don't set empty src, just pause and reset state
+      audio.pause();
       setPlayerState(prevState => ({ ...prevState, isPlaying: false, currentTime: 0, duration: 0 }));
     }
   }, [playerState.currentTrack, playerState.isPlaying]);
@@ -257,7 +258,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const handleEnded = () => handleTrackEnded();
     const handlePlay = () => setPlayerState(prevState => ({ ...prevState, isPlaying: true }));
     const handlePause = () => setPlayerState(prevState => ({ ...prevState, isPlaying: false }));
-    const handleError = (e: Event) => { console.error("Audio error: ", e); };
+    const handleError = (e: Event) => {
+      const audioElement = e.target as HTMLAudioElement;
+      if (audioElement?.src !== window.location.href) {
+        console.error("Audio error: ", e, "Source:", audioElement.src);
+      }
+    };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
