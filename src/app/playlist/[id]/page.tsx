@@ -1,7 +1,11 @@
+'use client';
+
 import type { Playlist, Track } from '@/types';
 import TrackList from '@/components/TrackList';
 import PlaylistControls from '@/components/PlaylistControls';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState, use } from 'react';
 
 type PlaylistData = {
   playlist: Playlist;
@@ -32,9 +36,31 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function PlaylistPage({ params }: PageProps) {
-  const { id } = await params;
-  const { playlist, tracks } = await getPlaylistData(id);
+export default function PlaylistPage({ params }: PageProps) {
+  const { id } = use(params);
+  const [playlist, setPlaylist] = useState<Playlist>({} as Playlist);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    getPlaylistData(id).then(({ playlist, tracks }) => {
+      setPlaylist(playlist);
+      setTracks(tracks);
+    }).catch(e => console.error(e));
+  }, [id]);
+
+  const handleDeletePlaylist = async () => {
+    if (window.confirm(`Are you sure you want to delete the playlist "${playlist.name}"?`)) {
+      try {
+        await fetch(`/api/playlists/${id}`, {
+          method: 'DELETE',
+        });
+        router.push('/library/playlists');
+      } catch (error) {
+        console.error('Failed to delete playlist:', error);
+      }
+    }
+  };
 
   if (!playlist.id) {
     return (
@@ -63,6 +89,12 @@ export default async function PlaylistPage({ params }: PageProps) {
           <p className="text-gray-400">
             {tracks.length} {tracks.length === 1 ? 'song' : 'songs'}
           </p>
+          <button
+            onClick={handleDeletePlaylist}
+            className="mt-4 px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition-colors"
+          >
+            Delete Playlist
+          </button>
         </div>
       </header>
 

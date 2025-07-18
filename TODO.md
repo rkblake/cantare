@@ -2,7 +2,7 @@
 - [ ] handle audio error
 - [x] hide modals when clicking outside
 - [ ] reorder tracks in playlist and queue
-- [ ] remove from playlist
+- [x] remove from playlist
 - [ ] favorite tracks and albums
 - [x] fetch album artwork
 - [ ] generate artwork thumbnails
