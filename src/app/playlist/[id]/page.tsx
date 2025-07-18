@@ -75,7 +75,7 @@ export default async function PlaylistPage({ params }: PageProps) {
       <section>
         {tracks.length > 0 ? (
           <div className="bg-gray-800/30 rounded-lg">
-            <TrackList tracks={tracks} />
+            <TrackList tracks={tracks} playlistId={id} />
           </div>
         ) : (
           <div className="text-center text-gray-500 py-20">

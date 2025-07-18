@@ -4,7 +4,7 @@ import { parseFile } from 'music-metadata';
 import type { Track, Album, Artist } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/database';
-import { IAudioMetadata } from 'music-metadata';
+import type { IAudioMetadata } from 'music-metadata';
 
 const artworkDir = path.join(process.cwd(), '.data', 'artwork');
 
@@ -18,9 +18,9 @@ async function extractArtwork(metadata: IAudioMetadata, albumId: string): Promis
     await fs.mkdir(artworkDir, { recursive: true });
     const extension = picture.format.split('/')[1] ?? 'jpg';
     const artworkPath = path.join(artworkDir, `${albumId}.${extension}`);
-    
+
     await fs.writeFile(artworkPath, picture.data);
-    
+
     return `/api/artwork/${albumId}.${extension}`;
   } catch (error) {
     console.error(`Failed to save artwork for album ${albumId}:`, error);
@@ -55,10 +55,10 @@ export async function scanMusicDirectory(directory: string): Promise<{ tracks: T
               albumArtist: common.albumartist ?? common.artist ?? 'Unkwown Artist',
               genre: Array.isArray(common.genre) ? common.genre.join(', ') : common.genre ?? null,
               year: common.year ?? null,
-               duration: Number(metadata.format.duration?.toFixed(2)) ?? null,
-               trackNumber: common.track?.no,
-               diskNumber: common.disk?.no,
-             };
+              duration: Number(metadata.format.duration?.toFixed(2)) ?? null,
+              trackNumber: common.track?.no,
+              diskNumber: common.disk?.no,
+            };
             tracks.push(track);
 
             const albumKey = `${track.album}||${track.albumArtist}`;

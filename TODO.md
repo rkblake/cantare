@@ -7,3 +7,5 @@
 - [x] fetch album artwork
 - [ ] generate artwork thumbnails
 - [ ] ways of sorting tracklists, albums, and artists
+- [ ] merging lowdb
+- [ ] artworkPath to thumbnail or original album cover path

@@ -4,11 +4,13 @@ import type { Track, Playlist } from '@/types';
 import { usePlayer } from '@/context/PlayerContext';
 import { formatTime } from '@/utils/formatTime';
 import ContextMenu from './ContextMenu';
+
 interface TrackListProps {
   tracks: Track[];
+  playlistId?: string;
 }
 
-const TrackList: React.FC<TrackListProps> = ({ tracks }) => {
+const TrackList: React.FC<TrackListProps> = ({ tracks, playlistId }) => {
   const { playTrack, addToQueue } = usePlayer();
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number; track: Track } | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -34,13 +36,36 @@ const TrackList: React.FC<TrackListProps> = ({ tracks }) => {
     handleCloseContextMenu();
   };
 
+  const handleRemoveFromPlaylist = async (track: Track) => {
+    if (!playlistId) return;
+
+    try {
+      const playlist = playlists.find(p => p.id === playlistId);
+      if (!playlist) return;
+
+      const updatedTrackIds = playlist.trackIds.filter(id => id !== track.id);
+
+      await fetch(`/api/playlists/${playlistId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackIds: updatedTrackIds }),
+      });
+
+      // Optimistically update the UI or refetch data
+      console.log(`Removed "${track.title}" from "${playlist.name}"`);
+    } catch (error) {
+      console.error('Failed to remove track from playlist:', error);
+    }
+    handleCloseContextMenu();
+  };
+
   const handleAddToPlaylist = async (track: Track, playlistId: string) => {
     try {
       const playlist = playlists.find(p => p.id === playlistId);
       if (!playlist) return;
 
       const updatedTrackIds = [...playlist.trackIds, track.id];
-      
+
       await fetch(`/api/playlists/${playlistId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -95,13 +120,21 @@ const TrackList: React.FC<TrackListProps> = ({ tracks }) => {
           >
             Add to Queue
           </button>
-          
+          {playlistId && (
+            <button
+              onClick={() => handleRemoveFromPlaylist(contextMenu.track)}
+              className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-600"
+            >
+              Remove from Playlist
+            </button>
+          )}
+
           <div className="border-t border-gray-600 my-1" />
-          
+
           <div className="px-4 py-2 text-xs text-gray-400 uppercase tracking-wide">
             Add to Playlist
           </div>
-          
+
           {playlists.length > 0 ? (
             playlists.map(playlist => (
               <button

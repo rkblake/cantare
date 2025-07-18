@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/database";
-import { Playlist } from "@/types";
+import type { Playlist } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 
 export async function GET() {
