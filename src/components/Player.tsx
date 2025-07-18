@@ -5,6 +5,7 @@ import { usePlayer } from '@/context/PlayerContext';
 import { formatTime } from '@/utils/formatTime';
 import type { Album } from '@/types';
 
+import { useClickOutside } from '@/hooks/useClickOutside';
 import { ForwardIcon, BackwardIcon, PlayIcon, PauseIcon, SpeakerWaveIcon, QueueListIcon } from '@heroicons/react/24/solid';
 import QueueModal from './QueueModal';
 
@@ -26,6 +27,8 @@ const Player: React.FC = () => {
   const [albums, setAlbums] = React.useState<Album[]>([]);
   const [isVolumeSliderOpen, setVolumeSliderOpen] = React.useState(false);
   const [isQueueModalOpen, setQueueModalOpen] = React.useState(false);
+  const volumeRef = useClickOutside<HTMLDivElement>(() => setVolumeSliderOpen(false));
+
 
   React.useEffect(() => {
     fetch('/api/albums')
@@ -104,7 +107,7 @@ const Player: React.FC = () => {
 
       {/* Volume, Queue etc. (Optional for basic player) */}
       <div className="w-1/4 flex justify-end items-center space-x-2">
-        <div className="relative">
+        <div className="relative" ref={volumeRef}>
           <button onClick={() => setVolumeSliderOpen(!isVolumeSliderOpen)} className="p-2 rounded-full hover:bg-gray-700">
             <SpeakerWaveIcon className="h-6 w-6" />
           </button>

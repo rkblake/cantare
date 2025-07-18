@@ -1,8 +1,9 @@
-- [ ] fix first time click on song not playing
+- [ ] fix first time clicking on song not playing
 - [ ] handle audio error
-- [ ] hide modals when clicking outside
+- [x] hide modals when clicking outside
 - [ ] reorder tracks in playlist and queue
 - [ ] remove from playlist
 - [ ] favorite tracks and albums
 - [x] fetch album artwork
 - [ ] generate artwork thumbnails
+- [ ] ways of sorting tracklists, albums, and artists
