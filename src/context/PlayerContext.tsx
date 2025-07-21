@@ -165,12 +165,23 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const addToQueue = (track: Track) => {
     if (!playerState.queue.some(t => t.id === track.id)) {
-      setPlayerState(prevState => ({
-        ...prevState,
-        queue: [...prevState.queue, track]
-      }));
+      setPlayerState(prevState => {
+        const wasQueueEmpty = prevState.queue.length === 0;
+        if (wasQueueEmpty) {
+          return {
+            ...prevState,
+            queue: [track],
+            currentTrackIndex: 0,
+            isPlaying: true,
+          };
+        }
+        return {
+          ...prevState,
+          queue: [...prevState.queue, track],
+        };
+      });
     }
-  }
+  };
 
   const removeFromQueue = (trackId: string) => {
     setPlayerState(prevState => {
