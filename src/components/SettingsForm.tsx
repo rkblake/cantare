@@ -57,8 +57,8 @@ const SettingsForm: React.FC<SettingsFormProps> = ({ settings, onSave, onScan, d
           id="databasePath"
           value={settings.databasePath} // Display actual path from settings
           readOnly // Prevent user editing easily
-          className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm sm:text-sm p-2"
-          disabled={disabled}
+          className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm sm:text-sm p-2 cursor-not-allowed"
+          disabled={true}
         />
         <p className="mt-1 text-xs text-gray-500">Location where the music library data is stored.</p>
       </div>

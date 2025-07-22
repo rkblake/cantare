@@ -1,33 +1,18 @@
-import { LowSync } from "lowdb";
-import { JSONFileSync } from "lowdb/node";
-import path from "path";
-import type { DatabaseSchema } from "@/types";
-import fs from "fs";
+'server only';
+import { openDb, createTables } from './sqlite';
+import fs from 'fs';
+import path from 'path';
 
-const dataDir = process.env.NODE_ENV === 'development'
-  ? path.join(process.cwd(), '.data')
-  : path.join(process.cwd(), 'data') // TODO: need stable location
+export async function initializeDatabase() {
+  const dataDir = process.env.NODE_ENV === 'development'
+    ? path.join(process.cwd(), '.data')
+    : path.join(process.cwd(), 'data')
 
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir);
+  }
 
-const dbFile = path.join(dataDir, 'db.json');
-
-const adapter = new JSONFileSync<DatabaseSchema>(dbFile);
-const defaultData: DatabaseSchema = {
-  tracks: [],
-  albums: [],
-  artists: [],
-  playlists: [],
-  settings: { musicDirectory: '', databasePath: dbFile }
-};
-
-export const db = new LowSync(adapter, defaultData);
-
-db.read();
-
-if (!db.data || Object.keys(db.data).length == 0) {
-  db.data = defaultData;
-  db.write();
+  const db = await openDb();
+  await createTables();
+  return db;
 }

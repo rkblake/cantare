@@ -1,15 +1,14 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { db } from '@/database';
-import { scanMusicDirectory } from '@/database/utils';
+import { getSettings, updateSettings } from '@/database/sqlite';
+import { scanMusicDirectorySql } from '@/database/utils';
 import type { Settings } from '@/types';
 
 export async function GET(_req: NextRequest) {
-  db.read();
-  return NextResponse.json(db.data.settings);
+  const settings = await getSettings();
+  return NextResponse.json(settings);
 }
 
 export async function POST(req: NextRequest) {
-  db.read();
   const body = await req.json() as { action: string, settingsData: Settings };
   const { action, settingsData } = body;
 
@@ -18,28 +17,13 @@ export async function POST(req: NextRequest) {
     if (!musicDirectory) {
       return NextResponse.json({ error: 'musicDirectory is required for scan' }, { status: 400 });
     }
-    
-    if (!db.data.settings) {
-      db.data.settings = { musicDirectory, databasePath: '' };
-    } else {
-      db.data.settings.musicDirectory = musicDirectory;
-    }
-    db.write();
+
+    await updateSettings({ musicDirectory });
 
     try {
-      const scanResult = await scanMusicDirectory(musicDirectory);
-      db.data.tracks = scanResult.tracks;
-      db.data.albums = scanResult.albums;
-      db.data.artists = scanResult.artists;
-      db.write();
-      return NextResponse.json({
-        message: 'Scan complete',
-        counts: {
-          tracks: scanResult.tracks.length,
-          albums: scanResult.albums.length,
-          artists: scanResult.artists.length
-        }
-      });
+      await scanMusicDirectorySql(musicDirectory);
+
+      return NextResponse.json({ message: 'Scan complete', });
     } catch (error: unknown) {
       console.error('Scan failed: ', error);
       let message = 'An unknown error occurred.';
@@ -49,8 +33,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Scan failed', message }, { status: 500 });
     }
   } else {
-    db.data.settings = { ...db.data.settings, ...settingsData };
-    db.write();
-    return NextResponse.json(db.data.settings);
+    await updateSettings(settingsData);
+    const settings = await getSettings();
+    return NextResponse.json(settings);
   }
 }
+

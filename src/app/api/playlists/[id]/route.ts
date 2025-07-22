@@ -1,68 +1,62 @@
 import { NextResponse } from "next/server";
-import { db } from "@/database";
+import {
+  getPlaylist,
+  getTracks,
+  updatePlaylist,
+  deletePlaylist,
+} from "@/database/sqlite";
 import type { Playlist } from "@/types";
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
-  const { id } = await params;
-  db.read();
+  const { id } = params;
+  const playlist = await getPlaylist(id);
 
-  const playlist = db.data.playlists.find((p: Playlist) => p.id === id);
   if (!playlist) {
     return new NextResponse("Playlist not found", { status: 404 });
   }
 
-  const tracks = db.data.tracks.filter((t) => playlist.trackIds.includes(t.id));
-  return NextResponse.json({ playlist, tracks });
+  const tracks = await getTracks();
+  const playlistTracks = tracks.filter((t) => playlist.trackIds.includes(t.id));
+
+  return NextResponse.json({ playlist, tracks: playlistTracks });
 }
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
-  const { id } = await params;
-  db.read();
+  const { id } = params;
+  const playlist = await getPlaylist(id);
 
-  const playlistIndex = db.data.playlists.findIndex((p: Playlist) => p.id === id);
-  if (playlistIndex === -1) {
+  if (!playlist) {
     return new NextResponse("Playlist not found", { status: 404 });
   }
 
-  const { name, trackIds } = await request.json() as { name: string, trackIds: string[] };
-  const originalPlaylist = db.data.playlists[playlistIndex];
-
-  if (!originalPlaylist) {
-    return new NextResponse("Playlist not found", { status: 404 });
-  }
-
-  const updatedPlaylist = {
-    ...originalPlaylist,
-    name: name ?? originalPlaylist.name,
-    trackIds: trackIds ?? originalPlaylist.trackIds,
+  const { name, trackIds } = await request.json() as {
+    name?: string;
+    trackIds?: string[];
   };
 
-  db.data.playlists[playlistIndex] = updatedPlaylist;
-  db.write();
+  const updatedPlaylist: Playlist = {
+    ...playlist,
+    name: name ?? playlist.name,
+    trackIds: trackIds ?? playlist.trackIds,
+  };
+
+  await updatePlaylist(id, updatedPlaylist);
 
   return NextResponse.json(updatedPlaylist);
 }
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
-  const { id } = await params;
-  db.read();
-
-  const initialLength = db.data.playlists.length;
-  db.data.playlists = db.data.playlists.filter((p: Playlist) => p.id !== id);
-
-  if (db.data.playlists.length < initialLength) {
-    db.write();
-    return new NextResponse(null, { status: 204 });
-  } else {
-    return new NextResponse("Playlist not found", { status: 404 });
-  }
+  const { id } = params;
+  await deletePlaylist(id);
+  return new NextResponse(null, { status: 204 });
 }
+
