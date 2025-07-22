@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { getAlbum, getTracks } from '@/database/sqlite';
+import { getAlbum, getTracksFromAlbum } from '@/database/sqlite';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -10,9 +10,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Album not found' }, { status: 404 });
   }
 
-  const allTracks = await getTracks();
-  const albumTracks = allTracks.filter((track) => track.album === album.name);
+  const tracks = await getTracksFromAlbum(album);
 
-  return NextResponse.json({ album, tracks: albumTracks });
+  return NextResponse.json({ album, tracks });
 }
 

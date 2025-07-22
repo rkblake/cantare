@@ -264,3 +264,43 @@ export async function getArtistCount(): Promise<number | undefined> {
   const db = await openDb();
   return db.get<number>('SELECT COUNT(*) FROM artists');
 }
+
+export async function getTracksFromAlbum(album: Album): Promise<Track[] | undefined> {
+  const db = await openDb();
+  const tracks = db.all<Track[]>(`
+    SELECT
+      t.id,
+      t.title,
+      art.name AS artist,
+      alb.name AS album,
+      t.year,
+      t.duration,
+      t.trackNumber,
+      t.diskNumber
+    FROM
+      tracks as t
+    INNER JOIN
+      artists AS art ON art.id = t.artist_id
+    INNER JOIN
+      albums AS alb ON alb.id = t.album_id
+    WHERE
+      t.album_id = ?
+  `, [album.id]);
+  return tracks;
+}
+
+export async function getAlbumsFromArtist(artist: Artist): Promise<Album[] | undefined> {
+  const db = await openDb();
+  const albums = db.all<Album[]>(`
+    SELECT
+      id,
+      name,
+      year,
+      artworkPath
+    FROM
+      albums
+    WHERE
+      artist_id = ?
+  `, [artist.id]);
+  return albums;
+}
