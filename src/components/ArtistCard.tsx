@@ -21,8 +21,8 @@ const ArtistCard: React.FC<ArtistCardProps> = ({ artist, imageUrl }) => {
             className="rounded-full"
           />
         </div>
-        <h3 className="font-bold text-md truncate group-hover:underline">{artist.name}</h3>
-        <p className="text-sm text-gray-400">Artist</p>
+        <h3 className="font-bold text-md truncate group-hover:underline w-full">{artist.name}</h3>
+        <p className="text-sm text-gray-400 w-full">Artist</p>
       </div>
     </Link>
   );
