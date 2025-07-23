@@ -222,6 +222,16 @@ export async function updatePlaylist(id: string, playlist: Partial<Playlist>) {
   return db.run(`UPDATE playlists SET ${fields} WHERE id = ?`, [...values, id]);
 }
 
+export async function addToPlaylist(playlist: Playlist, track: Track | string) {
+  const db = await openDb();
+  return db.run(`INSERT INTO playlist_tracks (playlist_id, track_id) VALUES (?, ?)`, [playlist.id, typeof track === 'string' ? track : track.id]);
+}
+
+export async function removeFromPlaylist(playlist: Playlist, track: Track | string) {
+  const db = await openDb();
+  return db.run(`DELETE FROM playlist_tracks WHERE playlist_id = ? AND track_id = ?`, [playlist.id, typeof track === 'string' ? track : track.id]);
+}
+
 export async function deletePlaylist(id: string) {
   const db = await openDb();
   return db.run('DELETE FROM playlists WHERE id = ?', id);
@@ -303,4 +313,31 @@ export async function getAlbumsFromArtist(artist: Artist): Promise<Album[] | und
       artist_id = ?
   `, [artist.id]);
   return albums;
+}
+
+export async function getTracksFromPlaylist(playlist: Playlist): Promise<Track[] | undefined> {
+  const db = await openDb();
+  const tracks = db.all<Track[]>(`
+    SELECT
+      t.id,
+      t.filePath,
+      t.title,
+      art.name AS artist,
+      alb.name AS album,
+      t.year,
+      t.duration,
+      t.trackNumber,
+      t.diskNumber
+    FROM
+      tracks as t
+    INNER JOIN
+      playlist_tracks AS pt ON pt.track_id = t.id
+    INNER JOIN
+      artists AS art ON art.id = t.artist_id
+    INNER JOIN
+      albums AS alb ON alb.id = t.album_id
+    WHERE
+      pt.playlist_id = ?
+  `, [playlist.id]);
+  return tracks;
 }
