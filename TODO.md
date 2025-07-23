@@ -13,7 +13,7 @@
   - [x] Refactor application to use SQLite utility
   - [x] Remove lowdb dependency
 - [ ] artworkPath to thumbnail or original album cover path
-- [ ] loading percentage on scan
+- [x] loading percentage on scan
 - [ ] searching hits artist image api endpoint too many times
 - [ ] names overflow on artist card (probably album card too)
-- [ ] ability to click on artist name on album page
+- [x] ability to click on artist name on album page

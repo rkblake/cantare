@@ -25,4 +25,4 @@ be music player controls along the bottom of the window.
 - strict typescript only. do not use `any`
 - add types or interfaces where necessary, especially when deconstructing json
 - prefer `const` when possible
-- async api endpoints params should be wrapped in `Promise`
+- async api endpoints params must be wrapped in `Promise`

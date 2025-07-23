@@ -136,7 +136,21 @@ export async function getAlbums(): Promise<Album[]> {
 
 export async function getAlbum(id: string): Promise<Album | undefined> {
   const db = await openDb();
-  return db.get<Album>('SELECT * FROM albums WHERE id = ?', id);
+  return db.get<Album>(`
+    SELECT
+      alb.id,
+      alb.name,
+      art.name AS artist,
+      alb.artist_id,
+      alb.year,
+      alb.artworkPath
+    FROM
+      albums AS alb
+    JOIN
+      artists AS art on alb.artist_id = art.id
+    WHERE
+      alb.id = ?
+  `, id);
 }
 
 export async function createAlbum(album: Album) {

@@ -86,12 +86,18 @@ export async function scanMusicDirectorySql(
         album = {
           id: albumId,
           name: albumName,
-          artist: artist.id,
+          artist: artist.name,
+          artist_id: artist.id,
           year: common.year ?? null,
           trackIds: [],
           artworkPath: await extractArtwork(metadata, albumId),
         };
         await createAlbum(album);
+      }
+
+      if (!album) {
+        console.error(`Could not find or create album for track ${fullPath}`);
+        return;
       }
 
       const track: Track = {

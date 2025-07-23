@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Album, Track } from '@/types';
 import TrackList from '@/components/TrackList';
 import Image from 'next/image';
@@ -47,7 +48,9 @@ export default async function AlbumPage({ params }: PageProps) {
           <h1 className="text-5xl font-extrabold tracking-tight text-white">
             {album.name}
           </h1>
-          <h2 className="text-2xl font-bold text-gray-400">{album.artist}</h2>
+          <Link href={`/artist/${album.artist_id}`}>
+            <h2 className="text-2xl font-bold text-gray-400 hover:underline">{album.artist}</h2>
+          </Link>
         </div>
       </header>
 

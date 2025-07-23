@@ -16,6 +16,7 @@ export interface Album {
   id: string;
   name: string | null;
   artist: string | null;
+  artist_id: string;
   year: number | null;
   artworkPath?: string;
   trackIds: string[];
