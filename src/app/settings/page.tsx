@@ -76,15 +76,17 @@ const SettingsPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'scan', settingsData: { musicDirectory } }),
       });
-      const result: unknown = await res.json();
+      const result = await res.json() as { message: string } | { error: string, message: string };
       if (!res.ok) throw new Error(`Scan failed: ${res.status} - ${(result as { error: string }).error}`);
 
-      setMessage(`Scan complete! Found ${(result as { counts: { tracks: number } }).counts.tracks} tracks.`);
+      // setMessage(`Scan complete! Found ${(result as { counts: { tracks: number } }).counts.tracks} tracks.`);
+      setMessage('Scan complete!');
       // Optionally refetch settings or update local state if scan returned settings
       await fetchSettings(); // Refetch to ensure latest settings/db state
 
     } catch (err: unknown) {
       console.error("Scan error:", err);
+      console.trace();
       if (err instanceof Error) {
         setError(err.message);
       } else {

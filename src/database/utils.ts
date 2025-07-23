@@ -1,10 +1,17 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { parseFile } from 'music-metadata';
-import type { Track, Album, Artist } from '@/types';
+import type { Track } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '@/database';
 import type { IAudioMetadata } from 'music-metadata';
+import {
+  createAlbum,
+  createArtist,
+  createTrack,
+  getAlbumByNameAndArtistId,
+  getArtistByName,
+  clearMusicData
+} from "@/database/sqlite";
 
 const artworkDir = path.join(process.cwd(), '.data', 'artwork');
 
@@ -28,11 +35,8 @@ async function extractArtwork(metadata: IAudioMetadata, albumId: string): Promis
   }
 }
 
-
-export async function scanMusicDirectory(directory: string): Promise<{ tracks: Track[], albums: Album[], artists: Artist[] }> {
-  const tracks: Track[] = [];
-  const albumsMap = new Map<string, Album>();
-  const artistsMap = new Map<string, Artist>();
+export async function scanMusicDirectorySql(directory: string) {
+  await clearMusicData();
 
   async function walk(dir: string) {
     try {
@@ -46,67 +50,51 @@ export async function scanMusicDirectory(directory: string): Promise<{ tracks: T
             const metadata = await parseFile(fullPath);
             const common = metadata.common;
 
-            const track: Track = {
-              id: uuidv4(),
-              filePath: fullPath,
-              title: common.title ?? path.parse(entry.name).name,
-              artist: common.artist ?? common.albumartist ?? 'Unkown Artist',
-              album: common.album ?? 'Unknown Album',
-              albumArtist: common.albumartist ?? common.artist ?? 'Unkwown Artist',
-              genre: Array.isArray(common.genre) ? common.genre.join(', ') : common.genre ?? null,
-              year: common.year ?? null,
-              duration: Number(metadata.format.duration?.toFixed(2)) ?? null,
-              trackNumber: common.track?.no,
-              diskNumber: common.disk?.no,
-            };
-            tracks.push(track);
+            const artistName = common.artist ?? common.albumartist ?? 'Unknown Artist';
+            let artist = await getArtistByName(artistName);
+            if (!artist) {
+              artist = {
+                id: uuidv4(),
+                name: artistName,
+                albumIds: [],
+                trackIds: [],
+              };
+              await createArtist(artist);
+            }
 
-            const albumKey = `${track.album}||${track.albumArtist}`;
-            let album = albumsMap.get(albumKey);
+            const albumName = common.album ?? 'Unknown Album';
+            let album = await getAlbumByNameAndArtistId(albumName, artist.id);
             if (!album) {
               const albumId = uuidv4();
               album = {
                 id: albumId,
-                name: track.album,
-                artist: track.albumArtist,
-                year: track.year,
+                name: albumName,
+                artist: artist.id,
+                year: common.year ?? null,
                 trackIds: [],
                 artworkPath: await extractArtwork(metadata, albumId),
               };
-              albumsMap.set(albumKey, album);
-            }
-            album.trackIds.push(track.id);
-
-            if (track.artist && track.artist !== track.albumArtist) {
-              const artistKey = track.artist;
-              if (!artistsMap.has(artistKey)) {
-                artistsMap.set(artistKey, {
-                  id: uuidv4(),
-                  name: artistKey,
-                  albumIds: [],
-                  trackIds: []
-                });
-              }
-              artistsMap.get(artistKey)!.trackIds.push(track.id);
+              await createAlbum(album);
             }
 
-            const albumArtistKey = track.albumArtist ?? 'Unknown Artist';
-            if (!artistsMap.has(albumArtistKey)) {
-              artistsMap.set(albumArtistKey, {
-                id: uuidv4(),
-                name: albumArtistKey,
-                albumIds: [],
-                trackIds: []
-              });
-            }
+            const track: Track = {
+              id: uuidv4(),
+              filePath: fullPath,
+              title: common.title ?? path.parse(entry.name).name,
+              artist: artist.id,
+              album: album.id,
+              albumArtist: common.albumartist ?? common.artist ?? 'Unknown Artist',
+              genre: Array.isArray(common.genre) ? common.genre.join(', ') : common.genre ?? null,
+              year: common.year ?? null,
+              duration: metadata.format.duration ?? null,
+              trackNumber: common.track?.no,
+              diskNumber: common.disk?.no,
+            };
+            await createTrack(track);
 
-            const albumEntry = albumsMap.get(albumKey);
-            if (albumEntry && !artistsMap.get(albumArtistKey)!.albumIds.includes(albumEntry.id)) {
-              artistsMap.get(albumArtistKey)!.albumIds.push(albumEntry.id);
-            }
           } catch (metaError) {
-            console.warn(`Could not parse metada for ${fullPath}: `, metaError);
-            tracks.push({
+            console.warn(`Could not parse metadata for ${fullPath}: `, metaError);
+            await createTrack({
               id: uuidv4(),
               filePath: fullPath,
               title: path.parse(entry.name).name,
@@ -123,16 +111,6 @@ export async function scanMusicDirectory(directory: string): Promise<{ tracks: T
     }
   }
 
-  // TODO: switch to diffing
-  db.data.tracks = [];
-  db.data.albums = [];
-  db.data.artists = [];
-  db.write();
-
   await walk(directory);
-
-  const albums = Array.from(albumsMap.values());
-  const artists = Array.from(artistsMap.values());
-
-  return { tracks, albums, artists };
 }
+

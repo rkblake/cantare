@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
-import { db } from '@/database/';
-import type { Track } from '@/types';
+import { getTrack } from '@/database/sqlite';
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('q');
@@ -10,8 +9,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid track ID' }, { status: 400 });
   }
 
-  db.read();
-  const track = db.data.tracks.find((t: Track) => t.id === id);
+  const track = await getTrack(id);
 
   if (!track?.filePath) {
     return NextResponse.json({ error: 'Track or file path not found' }, { status: 404 });
@@ -49,3 +47,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Error streaming file' }, { status: 500 });
   }
 }
+

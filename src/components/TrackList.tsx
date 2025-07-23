@@ -45,12 +45,12 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, playlistId }) => {
       const playlist = playlists.find(p => p.id === playlistId);
       if (!playlist) return;
 
-      const updatedTrackIds = playlist.trackIds.filter(id => id !== track.id);
+      // const updatedTrackIds = playlist.trackIds.filter(id => id !== track.id);
 
       await fetch(`/api/playlists/${playlistId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackIds: updatedTrackIds }),
+        body: JSON.stringify({ action: 'remove', trackIds: [track.id] }),
       });
 
       // Optimistically update the UI or refetch data
@@ -67,12 +67,12 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, playlistId }) => {
       const playlist = playlists.find(p => p.id === playlistId);
       if (!playlist) return;
 
-      const updatedTrackIds = [...playlist.trackIds, track.id];
+      // const updatedTrackIds = [...playlist.trackIds, track.id];
 
       await fetch(`/api/playlists/${playlistId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackIds: updatedTrackIds }),
+        body: JSON.stringify({ action: 'add', trackIds: [track.id] }),
       });
 
       console.log(`Added "${track.title}" to "${playlist.name}"`);
@@ -151,6 +151,14 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, playlistId }) => {
           ) : (
             <div className="px-4 py-2 text-sm text-gray-400">
               No playlists available
+            </div>
+          )}
+
+          <div className="border-t border-gray-600 my-1" />
+
+          {process.env.NODE_ENV === 'development' && (
+            <div className="px-4 py-2">
+              {contextMenu.track.id}
             </div>
           )}
         </ContextMenu>

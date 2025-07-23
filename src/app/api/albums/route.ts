@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/database';
+import { getAlbums } from '@/database/sqlite';
 
 export async function GET() {
-  db.read();
-  return NextResponse.json(db.data.albums);
+  const albums = await getAlbums();
+  return NextResponse.json(albums);
 }

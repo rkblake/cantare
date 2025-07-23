@@ -55,7 +55,7 @@ export default function PlaylistPage({ params }: PageProps) {
         await fetch(`/api/playlists/${id}`, {
           method: 'DELETE',
         });
-        router.push('/library/playlists');
+        router.push('/');
       } catch (error) {
         console.error('Failed to delete playlist:', error);
       }

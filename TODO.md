@@ -8,4 +8,9 @@
 - [ ] generate artwork thumbnails
 - [ ] ways of sorting tracklists, albums, and artists
 - [ ] merging lowdb
+- [ ] **Swap lowdb for sqlite3**
+  - [ ] Design SQLite schema
+  - [ ] Implement SQLite database utility
+  - [ ] Refactor application to use SQLite utility
+  - [ ] Remove lowdb dependency
 - [ ] artworkPath to thumbnail or original album cover path

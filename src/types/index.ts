@@ -9,8 +9,9 @@ export interface Track {
   year: number | null;
   duration: number | null;
   trackNumber: number | null;
-   diskNumber: number | null;
- }
+  diskNumber: number | null;
+}
+
 export interface Album {
   id: string;
   name: string | null;

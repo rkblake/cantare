@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
-import { db } from "@/database";
+import { getPlaylists, createPlaylist } from "@/database/sqlite";
 import type { Playlist } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 
 export async function GET() {
-  db.read();
-  return NextResponse.json(db.data.playlists);
+  const playlists = await getPlaylists();
+  return NextResponse.json(playlists);
 }
 
 export async function POST(request: Request) {
-  db.read();
   const { name } = await request.json() as { name: string };
 
   const newPlaylist: Playlist = {
@@ -19,8 +18,8 @@ export async function POST(request: Request) {
     trackIds: [],
   };
 
-  db.data.playlists.push(newPlaylist);
-  db.write();
+  await createPlaylist(newPlaylist);
 
   return NextResponse.json(newPlaylist);
 }
+
