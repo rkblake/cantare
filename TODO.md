@@ -1,5 +1,5 @@
 - [ ] fix first time clicking on song not playing
-- [ ] handle audio error
+- [x] handle audio error
 - [x] hide modals when clicking outside
 - [ ] reorder tracks in playlist and queue
 - [x] remove from playlist
@@ -7,10 +7,13 @@
 - [x] fetch album artwork
 - [ ] generate artwork thumbnails
 - [ ] ways of sorting tracklists, albums, and artists
-- [ ] merging lowdb
-- [ ] **Swap lowdb for sqlite3**
-  - [ ] Design SQLite schema
-  - [ ] Implement SQLite database utility
-  - [ ] Refactor application to use SQLite utility
-  - [ ] Remove lowdb dependency
+- [x] **Swap lowdb for sqlite3**
+  - [x] Design SQLite schema
+  - [x] Implement SQLite database utility
+  - [x] Refactor application to use SQLite utility
+  - [x] Remove lowdb dependency
 - [ ] artworkPath to thumbnail or original album cover path
+- [ ] loading percentage on scan
+- [ ] searching hits artist image api endpoint too many times
+- [ ] names overflow on artist card (probably album card too)
+- [ ] ability to click on artist name on album page

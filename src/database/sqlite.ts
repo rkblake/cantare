@@ -121,7 +121,17 @@ export async function deleteTrack(id: string) {
 
 export async function getAlbums(): Promise<Album[]> {
   const db = await openDb();
-  return db.all<Album[]>('SELECT * FROM albums');
+  return db.all<Album[]>(`
+    SELECT
+      album.id,
+      album.name,
+      art.name AS artist,
+      album.artworkPath
+    FROM
+      albums AS album
+    JOIN
+      artists AS art on album.artist_id = art.id
+    `);
 }
 
 export async function getAlbum(id: string): Promise<Album | undefined> {

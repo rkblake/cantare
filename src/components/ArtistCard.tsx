@@ -12,7 +12,7 @@ const ArtistCard: React.FC<ArtistCardProps> = ({ artist, imageUrl }) => {
   return (
     <Link href={`/artist/${artist.id}`} className="block group">
       <div className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex flex-col items-center text-center">
-        <div className="relative w-32 h-32 mb-4">
+        <div className="w-32 h-32 mb-4">
           <Image
             src={imageUrl}
             alt={artist.name ?? 'Unknown Artist'}

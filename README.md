@@ -17,7 +17,7 @@ Cantare is a local music streaming player that allows you to scan your local mus
 - **TypeScript:** A typed superset of JavaScript that compiles to plain JavaScript.
 - **Tailwind CSS:** A utility-first CSS framework for rapid UI development.
 - **Headless UI:** A set of unstyled, fully accessible UI components, designed to integrate beautifully with Tailwind CSS.
-- **lowdb:** A small local JSON database for storing information about your music library.
+- **Sqlite:** An efficient database for local storage of metadata information about your music library.
 - **pnpm:** A fast, disk space-efficient package manager.
 
 ## Getting Started

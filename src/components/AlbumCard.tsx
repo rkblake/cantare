@@ -8,7 +8,7 @@ const AlbumCard = ({ album }: { album: Album }) => {
   return (
     <Link href={`/album/${album.id}`} className="block group">
       <div className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors duration-200">
-        <div className="relative w-full aspect-square mb-4">
+        <div className="w-full aspect-square mb-4">
           <Image
             src={imageUrl}
             alt={album.name ?? 'Unknown Album'}
