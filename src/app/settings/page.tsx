@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import SettingsForm from '@/components/SettingsForm'; // Implement SettingsForm component
+import SettingsForm from '@/components/SettingsForm';
 import type { Settings } from '@/types';
 
 const SettingsPage: React.FC = () => {
@@ -8,13 +8,11 @@ const SettingsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
+  const [scanProgress, setScanProgress] = useState<{ total: number, processed: number } | null>(null);
 
   useEffect(() => {
     // Fetch current settings on mount
-    fetchSettings().catch((e) => {
-      console.error("Failed to fetch settings: ", e);
-    })
+    void fetchSettings();
   }, []);
 
   const fetchSettings = async () => {
@@ -68,36 +66,60 @@ const SettingsPage: React.FC = () => {
       return;
     }
     setLoading(true);
-    setMessage('Scanning music directory...');
+    setMessage('Initiating scan...');
     setError(null);
+    setScanProgress(null);
+
     try {
+      // First, tell the server to start the scan
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'scan', settingsData: { musicDirectory } }),
       });
-      const result = await res.json() as { message: string } | { error: string, message: string };
-      if (!res.ok) throw new Error(`Scan failed: ${res.status} - ${(result as { error: string }).error}`);
 
-      // setMessage(`Scan complete! Found ${(result as { counts: { tracks: number } }).counts.tracks} tracks.`);
-      setMessage('Scan complete!');
-      // Optionally refetch settings or update local state if scan returned settings
-      await fetchSettings(); // Refetch to ensure latest settings/db state
+      if (!res.ok) {
+        const result = await res.json() as { error: string };
+        throw new Error(`Failed to start scan: ${res.status} - ${result.error}`);
+      }
+
+      setMessage('Scanning music directory...');
+      setScanProgress({ total: 0, processed: 0 }); // Reset progress
+
+      // Now, connect to the event stream for progress updates
+      const eventSource = new EventSource('/api/settings/scan');
+
+      eventSource.onmessage = (event) => {
+        const progress = JSON.parse(event.data as string) as { total: number, processed: number };
+        setScanProgress(progress);
+        setMessage(`Scanning... ${progress.processed} / ${progress.total}`);
+      };
+
+      eventSource.onerror = () => {
+        setError('Failed to get scan updates. The connection was closed.');
+        eventSource.close();
+        setLoading(false);
+        setScanProgress(null);
+      };
+
+      eventSource.addEventListener('close', () => {
+        setMessage('Scan complete!');
+        eventSource.close();
+        setLoading(false);
+        setScanProgress(null);
+        void fetchSettings(); // Refetch settings after scan is complete
+      });
 
     } catch (err: unknown) {
-      console.error("Scan error:", err);
-      console.trace();
+      console.error("Scan initiation error:", err);
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unknown error occurred');
+        setError('An unknown error occurred during scan initiation');
       }
-      setMessage(null); // Clear scanning message on error
-    } finally {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="p-4">
@@ -106,6 +128,12 @@ const SettingsPage: React.FC = () => {
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-500">Error: {error}</p>}
       {message && <p className="text-green-500">{message}</p>}
+      {scanProgress && (
+        <div>
+          <p>Scanning Progress: {scanProgress.processed} / {scanProgress.total} files</p>
+          <progress value={scanProgress.processed} max={scanProgress.total} className="w-full" />
+        </div>
+      )}
 
       {settings && (
         <SettingsForm

@@ -35,82 +35,99 @@ async function extractArtwork(metadata: IAudioMetadata, albumId: string): Promis
   }
 }
 
-export async function scanMusicDirectorySql(directory: string) {
+export async function scanMusicDirectorySql(
+  directory: string,
+  onProgress: (progress: { total: number, processed: number }) => void
+) {
   await clearMusicData();
 
-  async function walk(dir: string) {
+  const filesToProcess: string[] = [];
+  async function discoverFiles(dir: string) {
     try {
       const entries = await fs.readdir(dir, { withFileTypes: true });
       for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
-          await walk(fullPath);
+          await discoverFiles(fullPath);
         } else if (entry.isFile() && /\.(mp3|flac|aac|wav)$/i.test(entry.name)) {
-          try {
-            const metadata = await parseFile(fullPath);
-            const common = metadata.common;
-
-            const artistName = common.artist ?? common.albumartist ?? 'Unknown Artist';
-            let artist = await getArtistByName(artistName);
-            if (!artist) {
-              artist = {
-                id: uuidv4(),
-                name: artistName,
-                albumIds: [],
-                trackIds: [],
-              };
-              await createArtist(artist);
-            }
-
-            const albumName = common.album ?? 'Unknown Album';
-            let album = await getAlbumByNameAndArtistId(albumName, artist.id);
-            if (!album) {
-              const albumId = uuidv4();
-              album = {
-                id: albumId,
-                name: albumName,
-                artist: artist.id,
-                year: common.year ?? null,
-                trackIds: [],
-                artworkPath: await extractArtwork(metadata, albumId),
-              };
-              await createAlbum(album);
-            }
-
-            const track: Track = {
-              id: uuidv4(),
-              filePath: fullPath,
-              title: common.title ?? path.parse(entry.name).name,
-              artist: artist.id,
-              album: album.id,
-              albumArtist: common.albumartist ?? common.artist ?? 'Unknown Artist',
-              genre: Array.isArray(common.genre) ? common.genre.join(', ') : common.genre ?? null,
-              year: common.year ?? null,
-              duration: metadata.format.duration ?? null,
-              trackNumber: common.track?.no,
-              diskNumber: common.disk?.no,
-            };
-            await createTrack(track);
-
-          } catch (metaError) {
-            console.warn(`Could not parse metadata for ${fullPath}: `, metaError);
-            await createTrack({
-              id: uuidv4(),
-              filePath: fullPath,
-              title: path.parse(entry.name).name,
-              artist: 'Unknown Artist',
-              album: 'Unknown Album',
-              albumArtist: 'Unknown Artist',
-              genre: null, year: null, duration: null, trackNumber: null, diskNumber: null
-            });
-          }
+          filesToProcess.push(fullPath);
         }
       }
-    } catch (readError) {
-      console.error(`Could not read directory ${dir}: `, readError);
+    } catch (discoverError) {
+      console.error(`Could not read directory ${dir} for discovery:`, discoverError);
     }
   }
 
-  await walk(directory);
+  await discoverFiles(directory);
+  const totalFiles = filesToProcess.length;
+  let processedFiles = 0;
+
+  async function processFile(fullPath: string) {
+    try {
+      const metadata = await parseFile(fullPath);
+      const common = metadata.common;
+
+      const artistName = common.artist ?? common.albumartist ?? 'Unknown Artist';
+      let artist = await getArtistByName(artistName);
+      if (!artist) {
+        artist = {
+          id: uuidv4(),
+          name: artistName,
+          albumIds: [],
+          trackIds: [],
+        };
+        await createArtist(artist);
+      }
+
+      const albumName = common.album ?? 'Unknown Album';
+      let album = await getAlbumByNameAndArtistId(albumName, artist.id);
+      if (!album) {
+        const albumId = uuidv4();
+        album = {
+          id: albumId,
+          name: albumName,
+          artist: artist.id,
+          year: common.year ?? null,
+          trackIds: [],
+          artworkPath: await extractArtwork(metadata, albumId),
+        };
+        await createAlbum(album);
+      }
+
+      const track: Track = {
+        id: uuidv4(),
+        filePath: fullPath,
+        title: common.title ?? path.parse(fullPath).name,
+        artist: artist.id,
+        album: album.id,
+        albumArtist: common.albumartist ?? common.artist ?? 'Unknown Artist',
+        genre: Array.isArray(common.genre) ? common.genre.join(', ') : common.genre ?? null,
+        year: common.year ?? null,
+        duration: metadata.format.duration ?? null,
+        trackNumber: common.track?.no,
+        diskNumber: common.disk?.no,
+      };
+      await createTrack(track);
+
+    } catch (metaError) {
+      console.warn(`Could not parse metadata for ${fullPath}: `, metaError);
+      await createTrack({
+        id: uuidv4(),
+        filePath: fullPath,
+        title: path.parse(fullPath).name,
+        artist: 'Unknown Artist',
+        album: 'Unknown Album',
+        albumArtist: 'Unknown Artist',
+        genre: null, year: null, duration: null, trackNumber: null, diskNumber: null
+      });
+    } finally {
+      processedFiles++;
+      onProgress({ total: totalFiles, processed: processedFiles });
+    }
+  }
+
+  for (const file of filesToProcess) {
+    await processFile(file);
+  }
 }
 

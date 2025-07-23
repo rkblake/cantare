@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getSettings, updateSettings } from '@/database/sqlite';
-import { scanMusicDirectorySql } from '@/database/utils';
 import type { Settings } from '@/types';
 
 export async function GET(_req: NextRequest) {
@@ -20,18 +19,9 @@ export async function POST(req: NextRequest) {
 
     await updateSettings({ musicDirectory });
 
-    try {
-      await scanMusicDirectorySql(musicDirectory);
-
-      return NextResponse.json({ message: 'Scan complete', });
-    } catch (error: unknown) {
-      console.error('Scan failed: ', error);
-      let message = 'An unknown error occurred.';
-      if (error instanceof Error) {
-        message = error.message;
-      }
-      return NextResponse.json({ error: 'Scan failed', message }, { status: 500 });
-    }
+    // The scan is now initiated, but progress is handled by the /api/settings/scan endpoint.
+    // This endpoint simply confirms the scan has been initiated.
+    return NextResponse.json({ message: 'Scan initiated' });
   } else {
     await updateSettings(settingsData);
     const settings = await getSettings();
