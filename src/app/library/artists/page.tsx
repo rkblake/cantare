@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Artist } from '@/types';
 import ArtistCard from '@/components/ArtistCard';
 
@@ -9,6 +9,7 @@ export default function ArtistsPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
+  const initialLoad = useRef(true);
 
   async function loadMoreArtists() {
     if (!hasMore || loading) return;
@@ -27,7 +28,10 @@ export default function ArtistsPage() {
   }
 
   useEffect(() => {
-    loadMoreArtists();
+    if (initialLoad.current) {
+      loadMoreArtists();
+      initialLoad.current = false;
+    }
   }, []);
 
   return (

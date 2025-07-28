@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Album } from '@/types';
 import AlbumCard from '@/components/AlbumCard';
 
@@ -9,13 +9,14 @@ export default function AlbumsPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
+  const initialLoad = useRef(true);
 
   async function loadMoreAlbums() {
     if (!hasMore || loading) return;
     setLoading(true);
     try {
       const response = await fetch(`/api/albums?page=${page}&limit=20`);
-      const result = await response.json() as { data: Album[], hasMore: boolean };
+      const result = await response.json();
       const newAlbums = result.data;
       setAlbums((prevAlbums) => [...prevAlbums, ...newAlbums]);
       setHasMore(result.hasMore);
@@ -28,12 +29,11 @@ export default function AlbumsPage() {
   }
 
   useEffect(() => {
-    loadMoreAlbums().catch((e) => {
-      alert(e);
-      console.log(e);
-      setLoading(false);
-    });
-  });
+    if (initialLoad.current) {
+      loadMoreAlbums();
+      initialLoad.current = false;
+    }
+  }, []);
 
   return (
     <div>
