@@ -24,17 +24,9 @@ const Player = () => {
     setVolume,
   } = usePlayer();
 
-  const [album, setAlbum] = useState<Album>();
   const [isVolumeSliderOpen, setVolumeSliderOpen] = useState(false);
   const [isQueueModalOpen, setQueueModalOpen] = useState(false);
   const volumeRef = useClickOutside<HTMLDivElement>(() => setVolumeSliderOpen(false));
-
-  useEffect(() => {
-    fetch('api/album/${currentTrack.album_id}')
-      .then(res => res.json())
-      .then(setAlbum)
-      .catch(console.error);
-  }, [currentTrack]);
 
   const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(event.target.value);
@@ -42,9 +34,9 @@ const Player = () => {
   };
 
   const title = currentTrack?.title ?? 'Unknown Title';
-  const artist = currentTrack?.artist ?? 'Unknown Artist';
-  const albumName = currentTrack?.album ?? 'Unknown Album';
-  const artworkUrl = album?.artworkPath ? `/api/artwork/${album.id}` : '/images/default-artwork.svg';
+  const artistName = currentTrack?.artist?.name ?? 'Unknown Artist';
+  const albumName = currentTrack?.album?.name ?? 'Unknown Album';
+  const artworkUrl = currentTrack?.album?.artworkPath ?? '/images/default-artwork.svg';
 
   const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(event.target.value);
@@ -64,7 +56,8 @@ const Player = () => {
         />
         <div>
           <div className="font-bold text-sm truncate">{title}</div>
-          <div className="text-xs text-gray-400 truncate">{artist} - {albumName}</div>        </div>
+          <div className="text-xs text-gray-400 truncate">{artistName} - {albumName}</div>
+        </div>
       </div>
 
       {/* Controls and Slider */}

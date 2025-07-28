@@ -80,22 +80,51 @@ export async function createTables() {
 
 export async function getTracks(): Promise<Track[]> {
   const db = await openDb();
-  return db.all<Track[]>(`
+  let tracks = await db.all<Track[]>(`
     SELECT
-      t.id,
-      t.title,
-      art.name AS artist,
-      t.duration
+      t.*,
+      CASE WHEN a.id IS NOT NULL THEN json_object('id', a.id, 'name', a.name, 'artworkPath', a.artworkPath) ELSE NULL END as album,
+      CASE WHEN art.id IS NOT NULL THEN json_object('id', art.id, 'name', art.name) ELSE NULL END as artist
     FROM
       tracks AS t
-    INNER JOIN
-      artists AS art on art.id = t.artist_id
+    LEFT JOIN
+      albums AS a ON t.album_id = a.id
+    LEFT JOIN
+      artists AS art ON t.artist_id = art.id
   `);
+
+  tracks = tracks.map((track) => ({
+    ...track,
+    album: track.album ? JSON.parse(track.album as unknown as string) : null,
+    artist: track.artist ? JSON.parse(track.artist as unknown as string) : null,
+  }));
+
+  return tracks;
 }
 
 export async function getTrack(id: string): Promise<Track | undefined> {
   const db = await openDb();
-  return db.get<Track>('SELECT * FROM tracks WHERE id = ?', id);
+  const track = await db.get<Track>(`
+    SELECT
+      t.*,
+      json_object('id', a.id, 'name', a.name, 'artworkPath', a.artworkPath) as album,
+      json_object('id', art.id, 'name', art.name) as artist
+    FROM
+      tracks AS t
+    LEFT JOIN
+      albums AS a ON t.album_id = a.id
+    LEFT JOIN
+      artists AS art ON t.artist_id = art.id
+    WHERE
+      t.id = ?
+  `, id);
+
+  if (track) {
+    track.album = JSON.parse(track.album as unknown as string);
+    track.artist = JSON.parse(track.artist as unknown as string);
+  }
+
+  return track;
 }
 
 export async function createTrack(track: Track) {
@@ -106,8 +135,8 @@ export async function createTrack(track: Track) {
       track.id,
       track.filePath,
       track.title,
-      track.artist,
-      track.album,
+      track.artist?.id,
+      track.album?.id,
       track.albumArtist,
       track.genre,
       track.year,
@@ -321,16 +350,11 @@ export async function getArtistCount(): Promise<number | undefined> {
 
 export async function getTracksFromAlbum(album: Album): Promise<Track[] | undefined> {
   const db = await openDb();
-  const tracks = db.all<Track[]>(`
+  const tracks = await db.all<Track[]>(`
     SELECT
-      t.id,
-      t.title,
-      art.name AS artist,
-      alb.name AS album,
-      t.year,
-      t.duration,
-      t.trackNumber,
-      t.diskNumber
+      t.*,
+      json_object('id', alb.id, 'name', alb.name, 'artworkPath', alb.artworkPath) as album,
+      json_object('id', art.id, 'name', art.name) as artist
     FROM
       tracks as t
     INNER JOIN
@@ -339,8 +363,15 @@ export async function getTracksFromAlbum(album: Album): Promise<Track[] | undefi
       albums AS alb ON alb.id = t.album_id
     WHERE
       t.album_id = ?
-  `, [album.id]);
-  return tracks;
+  `, album.id);
+
+  return tracks.map((track) => {
+    return {
+      ...track,
+      album: JSON.parse(track.album as unknown as string),
+      artist: JSON.parse(track.artist as unknown as string)
+    }
+  });
 }
 
 export async function getAlbumsFromArtist(artist: Artist): Promise<Album[] | undefined> {

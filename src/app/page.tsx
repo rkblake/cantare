@@ -20,6 +20,7 @@ async function getHomepageData(): Promise<{ recentTracks: Track[], recentAlbums:
       // Return empty data on failure
       return { recentTracks: [], recentAlbums: [], featuredArtists: [] };
     }
+
     const data = await res.json() as Response;
 
     const featuredArtistsWithImages = await Promise.all(data.artists.map(async artist => {

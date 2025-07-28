@@ -104,7 +104,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, playlistId }) => {
             {/* <Image src={track.artworkPath || '/default.png'} width={40} height={40} className="rounded" /> */}
             <div className="truncate">
               <span className="font-semibold text-white">{track.title ?? 'Unknown Title'}</span>
-              <span className="text-sm text-gray-400"> - {track.artist ?? 'Unknown Artist'}</span>
+              <span className="text-sm text-gray-400"> - {track.artist?.name ?? 'Unknown Artist'}</span>
             </div>
             <div className="flex-1 text-right text-sm text-gray-400">{track.duration ? formatTime(track.duration) : '0:00'}</div>
           </div>

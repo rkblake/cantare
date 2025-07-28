@@ -2,8 +2,8 @@ export interface Track {
   id: string;
   filePath: string;
   title: string | null;
-  artist: string | null;
-  album: string | null;
+  artist: Artist | null;
+  album: Album | null;
   albumArtist: string | null;
   genre: string | null;
   year: number | null;
