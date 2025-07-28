@@ -130,8 +130,9 @@ export async function deleteTrack(id: string) {
   return db.run('DELETE FROM tracks WHERE id = ?', id);
 }
 
-export async function getAlbums(): Promise<Album[]> {
+export async function getAlbums(page: number = 1, limit: number = 20): Promise<Album[]> {
   const db = await openDb();
+  const offset = (page - 1) * limit;
   return db.all<Album[]>(`
     SELECT
       album.id,
@@ -142,7 +143,8 @@ export async function getAlbums(): Promise<Album[]> {
       albums AS album
     JOIN
       artists AS art on album.artist_id = art.id
-    `);
+    LIMIT ? OFFSET ?
+  `, limit, offset);
 }
 
 export async function getAlbum(id: string): Promise<Album | undefined> {
@@ -190,9 +192,10 @@ export async function deleteAlbum(id: string) {
   return db.run('DELETE FROM albums WHERE id = ?', id);
 }
 
-export async function getArtists(): Promise<Artist[]> {
+export async function getArtists(page: number = 1, limit: number = 20): Promise<Artist[]> {
   const db = await openDb();
-  return db.all<Artist[]>('SELECT * FROM artists');
+  const offset = (page - 1) * limit;
+  return db.all<Artist[]>('SELECT * FROM artists LIMIT ? OFFSET ?', limit, offset);
 }
 
 export async function getArtist(id: string): Promise<Artist | undefined> {
@@ -381,4 +384,19 @@ export async function getTracksFromPlaylist(playlist: Playlist): Promise<Track[]
       pt.playlist_id = ?
   `, [playlist.id]);
   return tracks;
+}
+
+export async function getArtworkForTrack(track: Track): Promise<string | undefined> {
+  const db = await openDb();
+  const artworkPath = db.get<string>(`
+    SELECT
+      a.artworkPath
+    FROM
+      albums AS a
+    INNER JOIN
+      tracks AS t ON t.album_id = a.id
+    WHERE
+      t.id = ?
+  `, [track.id]);
+  return artworkPath;
 }

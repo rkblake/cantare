@@ -1,6 +1,6 @@
 'use client';
 import Image from 'next/image';
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { usePlayer } from '@/context/PlayerContext';
 import { formatTime } from '@/utils/formatTime';
 import type { Album } from '@/types';
@@ -9,7 +9,7 @@ import { useClickOutside } from '@/hooks/useClickOutside';
 import { ForwardIcon, BackwardIcon, PlayIcon, PauseIcon, SpeakerWaveIcon, QueueListIcon } from '@heroicons/react/24/solid';
 import QueueModal from './QueueModal';
 
-const Player: React.FC = () => {
+const Player = () => {
   const {
     currentTrack,
     isPlaying,
@@ -24,18 +24,17 @@ const Player: React.FC = () => {
     setVolume,
   } = usePlayer();
 
-  const [albums, setAlbums] = React.useState<Album[]>([]);
-  const [isVolumeSliderOpen, setVolumeSliderOpen] = React.useState(false);
-  const [isQueueModalOpen, setQueueModalOpen] = React.useState(false);
+  const [album, setAlbum] = useState<Album>();
+  const [isVolumeSliderOpen, setVolumeSliderOpen] = useState(false);
+  const [isQueueModalOpen, setQueueModalOpen] = useState(false);
   const volumeRef = useClickOutside<HTMLDivElement>(() => setVolumeSliderOpen(false));
 
-
-  React.useEffect(() => {
-    fetch('/api/albums')
+  useEffect(() => {
+    fetch('api/album/${currentTrack.album_id}')
       .then(res => res.json())
-      .then(setAlbums)
+      .then(setAlbum)
       .catch(console.error);
-  }, []);
+  }, [currentTrack]);
 
   const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(event.target.value);
@@ -45,8 +44,6 @@ const Player: React.FC = () => {
   const title = currentTrack?.title ?? 'Unknown Title';
   const artist = currentTrack?.artist ?? 'Unknown Artist';
   const albumName = currentTrack?.album ?? 'Unknown Album';
-
-  const album = albums.find(a => a.name === albumName && a.artist === currentTrack?.albumArtist);
   const artworkUrl = album?.artworkPath ? `/api/artwork/${album.id}` : '/images/default-artwork.svg';
 
   const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {

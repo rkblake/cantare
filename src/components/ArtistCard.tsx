@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 interface ArtistCardProps {
   artist: Artist;
-  imageUrl: string;
+  imageUrl?: string;
 }
 
 const ArtistCard: React.FC<ArtistCardProps> = ({ artist, imageUrl }) => {
@@ -14,7 +14,7 @@ const ArtistCard: React.FC<ArtistCardProps> = ({ artist, imageUrl }) => {
       <div className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex flex-col items-center text-center">
         <div className="w-32 h-32 mb-4">
           <Image
-            src={imageUrl}
+            src={imageUrl ?? '/images/default-artist.svg'}
             alt={artist.name ?? 'Unknown Artist'}
             width={500}
             height={500}
