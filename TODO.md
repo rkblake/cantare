@@ -15,5 +15,5 @@
 - [ ] artworkPath to thumbnail or original album cover path
 - [x] loading percentage on scan
 - [ ] searching hits artist image api endpoint too many times
-- [ ] names overflow on artist card (probably album card too)
+- [x] names overflow on artist card (probably album card too)
 - [x] ability to click on artist name on album page

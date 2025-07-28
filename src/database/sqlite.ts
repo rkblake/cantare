@@ -46,12 +46,13 @@ export async function createTables() {
       artist_id TEXT,
       year INTEGER,
       artworkPath TEXT,
-      FOREIGN KEY (artist_id) REFERENCES artists(id)
+      FOREIGN KEY (artist_id) REFERENCES artists(id),
+      UNIQUE(name, artist_id)
     );
 
     CREATE TABLE IF NOT EXISTS artists (
       id TEXT PRIMARY KEY,
-      name TEXT
+      name TEXT UNIQUE
     );
 
     CREATE TABLE IF NOT EXISTS playlists (
@@ -79,7 +80,17 @@ export async function createTables() {
 
 export async function getTracks(): Promise<Track[]> {
   const db = await openDb();
-  return db.all<Track[]>('SELECT * FROM tracks');
+  return db.all<Track[]>(`
+    SELECT
+      t.id,
+      t.title,
+      art.name AS artist,
+      t.duration
+    FROM
+      tracks AS t
+    INNER JOIN
+      artists AS art on art.id = t.artist_id
+  `);
 }
 
 export async function getTrack(id: string): Promise<Track | undefined> {
@@ -136,7 +147,7 @@ export async function getAlbums(): Promise<Album[]> {
 
 export async function getAlbum(id: string): Promise<Album | undefined> {
   const db = await openDb();
-  return db.get<Album>(`
+  const album = await db.get<Album>(`
     SELECT
       alb.id,
       alb.name,
@@ -151,13 +162,19 @@ export async function getAlbum(id: string): Promise<Album | undefined> {
     WHERE
       alb.id = ?
   `, id);
+  if (!album) {
+    return;
+  }
+  const tracks = await db.all<Track[]>(`SELECT id FROM tracks WHERE album_id = ?`, id);
+  album.trackIds = tracks.map(t => t.id);
+  return album;
 }
 
 export async function createAlbum(album: Album) {
   const db = await openDb();
   return db.run(
-    'INSERT INTO albums (id, name, artist_id, year, artworkPath) VALUES (?, ?, ?, ?, ?)',
-    [album.id, album.name, album.artist, album.year, album.artworkPath]
+    'INSERT OR IGNORE INTO albums (id, name, artist_id, year, artworkPath) VALUES (?, ?, ?, ?, ?)',
+    [album.id, album.name, album.artist_id, album.year, album.artworkPath]
   );
 }
 
@@ -195,7 +212,7 @@ export async function getAlbumByNameAndArtistId(name: string, artistId: string):
 
 export async function createArtist(artist: Artist) {
   const db = await openDb();
-  return db.run('INSERT INTO artists (id, name) VALUES (?, ?)', [
+  return db.run('INSERT OR IGNORE INTO artists (id, name) VALUES (?, ?)', [
     artist.id,
     artist.name,
   ]);

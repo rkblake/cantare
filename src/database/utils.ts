@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { parseFile } from 'music-metadata';
-import type { Track } from '@/types';
+import type { Track, Album, Artist } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import type { IAudioMetadata } from 'music-metadata';
 import {
@@ -49,7 +49,7 @@ export async function scanMusicDirectorySql(
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
           await discoverFiles(fullPath);
-        } else if (entry.isFile() && /\.(mp3|flac|aac|wav)$/i.test(entry.name)) {
+        } else if (entry.isFile() && /\.(mp3)$/i.test(entry.name)) { // TODO: add flac|aac|wav
           filesToProcess.push(fullPath);
         }
       }
@@ -68,7 +68,7 @@ export async function scanMusicDirectorySql(
       const common = metadata.common;
 
       const artistName = common.artist ?? common.albumartist ?? 'Unknown Artist';
-      let artist = await getArtistByName(artistName);
+      let artist: Artist | undefined = await getArtistByName(artistName);
       if (!artist) {
         artist = {
           id: uuidv4(),
@@ -80,7 +80,7 @@ export async function scanMusicDirectorySql(
       }
 
       const albumName = common.album ?? 'Unknown Album';
-      let album = await getAlbumByNameAndArtistId(albumName, artist.id);
+      let album: Album | undefined = await getAlbumByNameAndArtistId(albumName, artist.id);
       if (!album) {
         const albumId = uuidv4();
         album = {
@@ -121,9 +121,9 @@ export async function scanMusicDirectorySql(
         id: uuidv4(),
         filePath: fullPath,
         title: path.parse(fullPath).name,
-        artist: 'Unknown Artist',
-        album: 'Unknown Album',
-        albumArtist: 'Unknown Artist',
+        artist: null,
+        album: null,
+        albumArtist: null,
         genre: null, year: null, duration: null, trackNumber: null, diskNumber: null
       });
     } finally {
@@ -132,8 +132,19 @@ export async function scanMusicDirectorySql(
     }
   }
 
-  for (const file of filesToProcess) {
-    await processFile(file);
+  const CONCURRENT_LIMIT = 10;
+  const queue = [...filesToProcess];
+
+  async function worker() {
+    while (queue.length > 0) {
+      const file = queue.shift();
+      if (file) {
+        await processFile(file);
+      }
+    }
   }
+
+  const workers = Array.from({ length: CONCURRENT_LIMIT }, () => worker());
+  await Promise.all(workers);
 }
 
