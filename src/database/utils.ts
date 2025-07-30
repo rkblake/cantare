@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import os from 'os';
 import path from 'path';
 import { parseFile } from 'music-metadata';
 import type { Track, Album, Artist } from '@/types';
@@ -132,7 +133,7 @@ export async function scanMusicDirectorySql(
     }
   }
 
-  const CONCURRENT_LIMIT = 10;
+  const CONCURRENT_LIMIT = os.cpus.length + 1;
   const queue = [...filesToProcess];
 
   async function worker() {
