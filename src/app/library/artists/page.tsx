@@ -16,7 +16,7 @@ export default function ArtistsPage() {
     setLoading(true);
     try {
       const response = await fetch(`/api/artists?page=${page}&limit=20`);
-      const result = await response.json();
+      const result = await response.json() as { data: Artist[], hasMore: boolean };
       setArtists((prevArtists) => [...prevArtists, ...result.data]);
       setHasMore(result.hasMore);
       setPage((prevPage) => prevPage + 1);
@@ -29,10 +29,10 @@ export default function ArtistsPage() {
 
   useEffect(() => {
     if (initialLoad.current) {
-      loadMoreArtists();
+      loadMoreArtists().catch(console.log);
       initialLoad.current = false;
     }
-  }, []);
+  });
 
   return (
     <div>

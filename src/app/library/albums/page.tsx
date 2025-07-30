@@ -15,8 +15,8 @@ export default function AlbumsPage() {
     if (!hasMore || loading) return;
     setLoading(true);
     try {
-      const response = await fetch(`/api/albums?page=${page}&limit=20`);
-      const result = await response.json();
+      const response = await fetch(`/api/albums?page=${page}&limit=100`);
+      const result = await response.json() as { data: Album[], hasMore: boolean };
       const newAlbums = result.data;
       setAlbums((prevAlbums) => [...prevAlbums, ...newAlbums]);
       setHasMore(result.hasMore);
@@ -30,10 +30,10 @@ export default function AlbumsPage() {
 
   useEffect(() => {
     if (initialLoad.current) {
-      loadMoreAlbums();
+      loadMoreAlbums().catch(console.log);
       initialLoad.current = false;
     }
-  }, []);
+  });
 
   return (
     <div>

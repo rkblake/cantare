@@ -93,10 +93,10 @@ export async function getTracks(): Promise<Track[]> {
       artists AS art ON t.artist_id = art.id
   `);
 
-  tracks = tracks.map((track) => ({
+  tracks = tracks.map((track): Track => ({
     ...track,
-    album: track.album ? JSON.parse(track.album as unknown as string) : null,
-    artist: track.artist ? JSON.parse(track.artist as unknown as string) : null,
+    album: track.album ? JSON.parse(track.album as unknown as string) as Album : null,
+    artist: track.artist ? JSON.parse(track.artist as unknown as string) as Artist : null,
   }));
 
   return tracks;
@@ -120,8 +120,8 @@ export async function getTrack(id: string): Promise<Track | undefined> {
   `, id);
 
   if (track) {
-    track.album = JSON.parse(track.album as unknown as string);
-    track.artist = JSON.parse(track.artist as unknown as string);
+    track.album = JSON.parse(track.album as unknown as string) as Album;
+    track.artist = JSON.parse(track.artist as unknown as string) as Artist;
   }
 
   return track;
@@ -159,7 +159,7 @@ export async function deleteTrack(id: string) {
   return db.run('DELETE FROM tracks WHERE id = ?', id);
 }
 
-export async function getAlbums(page: number = 1, limit: number = 20): Promise<Album[]> {
+export async function getAlbums(page = 1, limit = 20): Promise<Album[]> {
   const db = await openDb();
   const offset = (page - 1) * limit;
   return db.all<Album[]>(`
@@ -221,7 +221,7 @@ export async function deleteAlbum(id: string) {
   return db.run('DELETE FROM albums WHERE id = ?', id);
 }
 
-export async function getArtists(page: number = 1, limit: number = 20): Promise<Artist[]> {
+export async function getArtists(page = 1, limit = 20): Promise<Artist[]> {
   const db = await openDb();
   const offset = (page - 1) * limit;
   return db.all<Artist[]>('SELECT * FROM artists LIMIT ? OFFSET ?', limit, offset);
@@ -368,8 +368,8 @@ export async function getTracksFromAlbum(album: Album): Promise<Track[] | undefi
   return tracks.map((track) => {
     return {
       ...track,
-      album: JSON.parse(track.album as unknown as string),
-      artist: JSON.parse(track.artist as unknown as string)
+      album: JSON.parse(track.album as unknown as string) as Album,
+      artist: JSON.parse(track.artist as unknown as string) as Artist
     }
   });
 }

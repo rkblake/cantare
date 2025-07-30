@@ -31,8 +31,8 @@ export async function GET(req: NextRequest) {
 
   const filteredTracks = tracks.filter((track: Track) =>
     track.title?.toLowerCase().includes(query) ??
-    track.artist?.toLowerCase().includes(query) ??
-    track.album?.toLowerCase().includes(query)
+    track.artist?.name?.toLowerCase().includes(query) ??
+    track.album?.name?.toLowerCase().includes(query)
   );
 
   const filteredAlbums = albums.filter((album: Album) =>

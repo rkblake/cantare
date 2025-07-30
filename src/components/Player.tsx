@@ -1,9 +1,8 @@
 'use client';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { usePlayer } from '@/context/PlayerContext';
 import { formatTime } from '@/utils/formatTime';
-import type { Album } from '@/types';
 
 import { useClickOutside } from '@/hooks/useClickOutside';
 import { ForwardIcon, BackwardIcon, PlayIcon, PauseIcon, SpeakerWaveIcon, QueueListIcon } from '@heroicons/react/24/solid';

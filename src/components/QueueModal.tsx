@@ -38,7 +38,7 @@ const QueueModal: React.FC<QueueModalProps> = ({ isOpen, onClose }) => {
             >
               <div className="truncate">
                 <span className={`font-semibold ${currentTrack?.id === track.id ? 'text-blue-400' : 'text-white'}`}>{track.title}</span>
-                <span className="text-sm text-gray-400"> - {track.artist}</span>
+                <span className="text-sm text-gray-400"> - {track.artist?.name ?? "Unknown Artist"}</span>
               </div>
               <button onClick={(e) => { e.stopPropagation(); removeFromQueue(track.id); }} className="p-1 rounded-full hover:bg-gray-600">
                 <XMarkIcon className="h-5 w-5" />
