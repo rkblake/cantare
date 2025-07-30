@@ -45,7 +45,7 @@ export default function AlbumPage({ params }: PageProps) {
     getAlbumData(id).then(({ album, tracks }) => {
       setAlbum(album);
       setTracks(tracks);
-    });
+    }).catch(console.log);
   }, [id]);
 
   if (!album) {
@@ -64,7 +64,7 @@ export default function AlbumPage({ params }: PageProps) {
     <div className="space-y-12 p-4 sm:p-6 md:p-8">
       <header className="flex items-center space-x-6">
         <Image
-          src={album.artworkPath ?? '/images/default-album.svg'}
+          src={album.artworkPath?.replace(".jpeg", "").replace(".jpg", "") ?? '/images/default-album.svg'}
           alt={album.name ?? 'Album Artwork'}
           width={128}
           height={128}

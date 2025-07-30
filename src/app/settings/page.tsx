@@ -130,7 +130,6 @@ const SettingsPage: React.FC = () => {
       {message && <p className="text-green-500">{message}</p>}
       {scanProgress && (
         <div>
-          <p>Scanning Progress: {scanProgress.processed} / {scanProgress.total} files</p>
           <progress value={scanProgress.processed} max={scanProgress.total} className="w-full" />
         </div>
       )}

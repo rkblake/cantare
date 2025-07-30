@@ -17,3 +17,4 @@
 - [ ] searching hits artist image api endpoint too many times
 - [x] names overflow on artist card (probably album card too)
 - [x] ability to click on artist name on album page
+- [ ] some albums have a cover.jpg in the folder use that if it exists
