@@ -1,6 +1,15 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
+import fs from 'fs/promises';
 import { getTrack } from '@/database/sqlite';
+import path from 'path';
+
+const mimeTypes: Record<string, string> = {
+  '.mp3': 'audio/mpeg',
+  '.flac': 'audio/flac',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
+};
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('q');
@@ -18,33 +27,66 @@ export async function GET(req: NextRequest) {
   const filePath = track.filePath;
 
   try {
-    const stat = fs.statSync(filePath);
+    const stat = await fs.stat(filePath);
     const fileSize = stat.size;
+    const range = req.headers.get('range');
 
-    const fileStream = fs.createReadStream(filePath);
-    const stream = new ReadableStream({
-      start(controller) {
-        fileStream.on("data", (chunk) => controller.enqueue(chunk));
-        fileStream.on("end", () => controller.close());
-        fileStream.on("error", (err) => controller.error(err));
-      },
-    });
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = mimeTypes[ext] ?? 'application/octet-stream';
 
-    const headers = new Headers();
-    headers.set('Content-Length', fileSize.toString());
-    headers.set('Content-Type', 'audio/mpeg');
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0]!, 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunksize = (end - start) + 1;
 
-    return new NextResponse(stream, {
-      status: 200,
-      headers,
-    });
+      const file = await fs.open(filePath, 'r');
+      const buffer = Buffer.alloc(chunksize);
+      await file.read(buffer, 0, chunksize, start);
+      await file.close();
 
+      const headers = new Headers();
+      headers.set('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+      headers.set('Accept-Ranges', 'bytes');
+      headers.set('Content-Length', chunksize.toString());
+      headers.set('Content-Type', contentType);
+
+      return new NextResponse(buffer, {
+        status: 206,
+        headers,
+      });
+    } else {
+      const file = await fs.open(filePath, 'r');
+      const stream = new ReadableStream({
+        async start(controller) {
+          const buffer = Buffer.alloc(1024 * 1024); // 1MB chunks
+          while (true) {
+            const { bytesRead } = await file.read(buffer, 0, buffer.length, null);
+            if (bytesRead === 0) {
+              break;
+            }
+            controller.enqueue(buffer.slice(0, bytesRead));
+          }
+          await file.close();
+          controller.close();
+        },
+      });
+
+      const headers = new Headers();
+      headers.set('Content-Length', fileSize.toString());
+      headers.set('Content-Type', contentType);
+
+      return new NextResponse(stream, {
+        status: 200,
+        headers,
+      });
+    }
   } catch (error) {
-    // if (error.code === 'ENOENT') {
-    //   return NextResponse.json({ error: 'File not found for this track' }, { status: 404 });
-    // }
+
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      return NextResponse.json({ error: 'File not found for this track' }, { status: 404 });
+    }
     console.error(`Error streaming file ${filePath}: `, error);
     return NextResponse.json({ error: 'Error streaming file' }, { status: 500 });
   }
 }
-
