@@ -260,16 +260,50 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const handleTimeUpdate = () => setPlayerState(prevState => ({ ...prevState, currentTime: audio.currentTime }));
     const handleLoadedMetadata = () => setPlayerState(prevState => ({ ...prevState, duration: audio.duration }));
     const handleTrackEnded = () => {
-      if (currentTrack) {
-        // Removing the finished track leaves the current index pointing at the next track,
-        // so the queue advances without skipping an entry.
-        removeFromQueue(currentTrack.id);
-      }
+      setPlayerState(prevState => {
+        if (prevState.currentTrackIndex === null) {
+          return prevState;
+        }
+
+        // Remove the finished track and keep the same index so the next track
+        // plays (wrapping to the start after the last track). Setting isPlaying
+        // here re-asserts playback after the browser's accompanying `pause` event.
+        const newQueue = prevState.queue.filter((_, index) => index !== prevState.currentTrackIndex);
+        if (newQueue.length === 0) {
+          return {
+            ...prevState,
+            queue: newQueue,
+            currentTrackIndex: null,
+            isPlaying: false,
+            currentTime: 0,
+            duration: 0,
+          };
+        }
+
+        const nextIndex = prevState.currentTrackIndex >= newQueue.length
+          ? 0
+          : prevState.currentTrackIndex;
+
+        return {
+          ...prevState,
+          queue: newQueue,
+          currentTrackIndex: nextIndex,
+          isPlaying: true,
+          currentTime: 0,
+          duration: 0,
+        };
+      });
     }
 
     const handleEnded = () => handleTrackEnded();
     const handlePlay = () => setPlayerState(prevState => ({ ...prevState, isPlaying: true }));
-    const handlePause = () => setPlayerState(prevState => ({ ...prevState, isPlaying: false }));
+    const handlePause = () => {
+      // Reaching the end of a track also fires `pause`; don't treat that as a
+      // user pause, the `ended` handler advances and keeps playing.
+      if (!audio.ended) {
+        setPlayerState(prevState => ({ ...prevState, isPlaying: false }));
+      }
+    };
     const handleError = (e: Event) => {
       const audioElement = e.target as HTMLAudioElement;
       if (audioElement?.src !== window.location.href) {
@@ -292,7 +326,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('error', handleError);
     }
-  }, [currentTrack]);
+  }, []);
 
   const contextValue: PlayerContextType = {
     ...playerState,
