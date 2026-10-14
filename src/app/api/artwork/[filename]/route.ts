@@ -3,11 +3,25 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import { stat } from 'fs/promises';
+import { artworkDir } from '@/database/paths';
+
+const imageMimeTypes: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+};
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ filename: string }> }) {
   const { filename } = await params;
-  const artworkDir = path.join(process.cwd(), '.data', 'artwork');
-  const filePath = path.join(artworkDir, filename) + '.jpeg';
+  const safeFilename = path.basename(filename);
+  const filePath = path.join(artworkDir, safeFilename);
+
+  // Guard against path traversal.
+  if (!filePath.startsWith(artworkDir + path.sep)) {
+    return new NextResponse('Not found', { status: 404 });
+  }
 
   try {
     const stats = await stat(filePath);
@@ -16,12 +30,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ fil
     }
 
     const fileBuffer = await fs.readFile(filePath);
-    const extension = path.extname(filename).slice(1);
+    const contentType = imageMimeTypes[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream';
 
     return new NextResponse(fileBuffer, {
       status: 200,
       headers: {
-        'Content-Type': `image/${extension}`,
+        'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     });

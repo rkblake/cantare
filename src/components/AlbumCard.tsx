@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 const AlbumCard = ({ album }: { album: Album }) => {
-  const imageUrl = album.artworkPath ? `/api/artwork/${album.id}` : '/images/default-album.svg';
+  const imageUrl = album.artworkPath ?? '/images/default-album.svg';
 
   return (
     <Link href={`/album/${album.id}`} className="block group">

@@ -35,7 +35,7 @@ const Player = () => {
   const title = currentTrack?.title ?? '';
   const artistName = currentTrack?.artist?.name ?? '';
   const albumName = currentTrack?.album?.name ?? '';
-  const artworkUrl = currentTrack?.album?.artworkPath?.replace(".jpeg", "").replace(".jpg", "") ?? '/images/default-artwork.svg';
+  const artworkUrl = currentTrack?.album?.artworkPath ?? '/images/default-artwork.svg';
 
   const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(event.target.value);

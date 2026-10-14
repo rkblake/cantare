@@ -19,3 +19,6 @@
 - [x] ability to click on artist name on album page
 - [ ] some albums have a cover.jpg in the folder use that if it exists
 - [ ] use first album for artist card in /library/artists
+- [ ] put playing icon next to currently playing track in track list view
+    - [ ] optional: a different icon for queued tracks?
+- [x] make sure tracks are in order in album track list

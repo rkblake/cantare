@@ -12,13 +12,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const artistAlbums = await getAlbumsFromArtist(artist);
 
-  let imageUrl = '/images/default-artist.svg';
-  if (artistAlbums && artistAlbums.length > 0) {
-    const firstAlbum = artistAlbums[0];
-    if (firstAlbum?.artworkPath) {
-      imageUrl = `/api/artwork/${firstAlbum.id}`;
-    }
-  }
+  const firstAlbum = artistAlbums?.[0];
+  const imageUrl = firstAlbum?.artworkPath ?? '/images/default-artist.svg';
 
   return NextResponse.json({ imageUrl });
 }

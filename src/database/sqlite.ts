@@ -1,20 +1,14 @@
 import { open, type Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import type { Track, Album, Artist, Playlist, Settings } from '@/types';
-import path from 'path';
+import { databasePath } from './paths';
 
 let db: Database;
-
-const dataDir = process.env.NODE_ENV === 'development'
-  ? path.join(process.cwd(), '.data')
-  : path.join(process.cwd(), 'data')
-
-const dbDir = path.join(dataDir, 'cantare.db');
 
 export async function openDb() {
   if (!db) {
     db = await open({
-      filename: dbDir,
+      filename: databasePath,
       driver: sqlite3.Database,
     });
   }
@@ -64,6 +58,7 @@ export async function createTables() {
     CREATE TABLE IF NOT EXISTS playlist_tracks (
       playlist_id TEXT,
       track_id TEXT,
+      position INTEGER,
       PRIMARY KEY (playlist_id, track_id),
       FOREIGN KEY (playlist_id) REFERENCES playlists(id),
       FOREIGN KEY (track_id) REFERENCES tracks(id)
@@ -75,7 +70,14 @@ export async function createTables() {
     );
   `);
 
-  await updateSettings({ databasePath: dbDir })
+  // Migration for databases created before playlist ordering existed.
+  const playlistTrackColumns = await db.all<{ name: string }[]>('PRAGMA table_info(playlist_tracks)');
+  if (!playlistTrackColumns.some((column) => column.name === 'position')) {
+    await db.exec('ALTER TABLE playlist_tracks ADD COLUMN position INTEGER');
+  }
+  await db.exec('UPDATE playlist_tracks SET position = rowid WHERE position IS NULL');
+
+  await updateSettings({ databasePath })
 }
 
 export async function getTracks(): Promise<Track[]> {
@@ -172,6 +174,7 @@ export async function getAlbums(page = 1, limit = 20): Promise<Album[]> {
       albums AS album
     JOIN
       artists AS art on album.artist_id = art.id
+    ORDER BY album.name COLLATE NOCASE, album.id
     LIMIT ? OFFSET ?
   `, limit, offset);
 }
@@ -188,6 +191,7 @@ export async function getAllAlbums(): Promise<Album[]> {
       albums AS album
     JOIN
       artists AS art on album.artist_id = art.id
+    ORDER BY album.name COLLATE NOCASE, album.id
   `);
 }
 
@@ -239,12 +243,12 @@ export async function deleteAlbum(id: string) {
 export async function getArtists(page = 1, limit = 20): Promise<Artist[]> {
   const db = await openDb();
   const offset = (page - 1) * limit;
-  return db.all<Artist[]>('SELECT * FROM artists LIMIT ? OFFSET ?', limit, offset);
+  return db.all<Artist[]>('SELECT * FROM artists ORDER BY name COLLATE NOCASE, id LIMIT ? OFFSET ?', limit, offset);
 }
 
 export async function getAllArtists(): Promise<Artist[]> {
   const db = await openDb();
-  return db.all<Artist[]>('SELECT * FROM artists');
+  return db.all<Artist[]>('SELECT * FROM artists ORDER BY name COLLATE NOCASE, id');
 }
 
 export async function getArtist(id: string): Promise<Artist | undefined> {
@@ -275,7 +279,37 @@ export async function clearMusicData() {
   await db.exec('DELETE FROM tracks');
   await db.exec('DELETE FROM albums');
   await db.exec('DELETE FROM artists');
-  await db.exec('DELETE FROM playlist_tracks');
+}
+
+export async function deleteOrphanedPlaylistTracks() {
+  const db = await openDb();
+  await db.run('DELETE FROM playlist_tracks WHERE track_id NOT IN (SELECT id FROM tracks)');
+}
+
+export async function getPlaylistTrackPaths(): Promise<{ playlist_id: string; track_id: string; filePath: string }[]> {
+  const db = await openDb();
+  return db.all<{ playlist_id: string; track_id: string; filePath: string }[]>(`
+    SELECT pt.playlist_id, pt.track_id, t.filePath
+    FROM playlist_tracks AS pt
+    JOIN tracks AS t ON t.id = pt.track_id
+  `);
+}
+
+export async function remapPlaylistTrack(playlistId: string, oldTrackId: string, newTrackId: string) {
+  if (oldTrackId === newTrackId) {
+    return;
+  }
+  const db = await openDb();
+  const existing = await db.get<{ present: number }>(
+    'SELECT 1 AS present FROM playlist_tracks WHERE playlist_id = ? AND track_id = ?',
+    playlistId,
+    newTrackId
+  );
+  if (existing) {
+    await db.run('DELETE FROM playlist_tracks WHERE playlist_id = ? AND track_id = ?', playlistId, oldTrackId);
+  } else {
+    await db.run('UPDATE playlist_tracks SET track_id = ? WHERE playlist_id = ? AND track_id = ?', newTrackId, playlistId, oldTrackId);
+  }
 }
 
 export async function updateArtist(id: string, artist: Partial<Artist>) {
@@ -317,7 +351,12 @@ export async function updatePlaylist(id: string, playlist: Partial<Playlist>) {
 
 export async function addToPlaylist(playlist: Playlist, track: Track | string) {
   const db = await openDb();
-  return db.run(`INSERT INTO playlist_tracks (playlist_id, track_id) VALUES (?, ?)`, [playlist.id, typeof track === 'string' ? track : track.id]);
+  const trackId = typeof track === 'string' ? track : track.id;
+  return db.run(
+    `INSERT OR IGNORE INTO playlist_tracks (playlist_id, track_id, position)
+     VALUES (?, ?, COALESCE((SELECT MAX(position) FROM playlist_tracks WHERE playlist_id = ?), 0) + 1)`,
+    [playlist.id, trackId, playlist.id]
+  );
 }
 
 export async function removeFromPlaylist(playlist: Playlist, track: Track | string) {
@@ -327,6 +366,7 @@ export async function removeFromPlaylist(playlist: Playlist, track: Track | stri
 
 export async function deletePlaylist(id: string) {
   const db = await openDb();
+  await db.run('DELETE FROM playlist_tracks WHERE playlist_id = ?', id);
   return db.run('DELETE FROM playlists WHERE id = ?', id);
 }
 
@@ -386,6 +426,10 @@ export async function getTracksFromAlbum(album: Album): Promise<Track[] | undefi
       albums AS alb ON alb.id = t.album_id
     WHERE
       t.album_id = ?
+    ORDER BY
+      COALESCE(t.diskNumber, 1),
+      COALESCE(t.trackNumber, 0),
+      t.title COLLATE NOCASE
   `, album.id);
 
   return tracks.map((track) => {
@@ -413,6 +457,9 @@ export async function getAlbumsFromArtist(artist: Artist): Promise<Album[] | und
       artists AS art ON art.id = alb.artist_id
     WHERE
       alb.artist_id = ?
+    ORDER BY
+      COALESCE(alb.year, 0),
+      alb.name COLLATE NOCASE
   `, [artist.id]);
 }
 
@@ -433,6 +480,9 @@ export async function getTracksFromPlaylist(playlist: Playlist): Promise<Track[]
       albums AS alb ON alb.id = t.album_id
     WHERE
       pt.playlist_id = ?
+    ORDER BY
+      COALESCE(pt.position, pt.rowid),
+      pt.rowid
   `, [playlist.id]);
 
   return tracks.map((track): Track => ({

@@ -22,10 +22,8 @@ async function getHomepageData(): Promise<{ recentTracks: Track[], recentAlbums:
     const featuredArtists = await Promise.all(
       artists.slice(-10).reverse().map(async (artist) => {
         const artistAlbums = await getAlbumsFromArtist(artist);
-        const artworkAlbum = artistAlbums?.find((album) => album.artworkPath);
-        const imageUrl = artworkAlbum
-          ? `/api/artwork/${artworkAlbum.id}`
-          : '/images/default-artist.svg';
+        const imageUrl = artistAlbums?.find((album) => album.artworkPath)?.artworkPath
+          ?? '/images/default-artist.svg';
         return { artist, imageUrl };
       })
     );

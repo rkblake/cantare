@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { parseFile } from 'music-metadata';
 import type { Track, Album, Artist } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 import type { IAudioMetadata } from 'music-metadata';
 import {
   createAlbum,
@@ -11,10 +11,20 @@ import {
   createTrack,
   getAlbumByNameAndArtistId,
   getArtistByName,
-  clearMusicData
+  clearMusicData,
+  deleteOrphanedPlaylistTracks,
+  getPlaylistTrackPaths,
+  remapPlaylistTrack
 } from "@/database/sqlite";
+import { artworkDir } from './paths';
 
-const artworkDir = path.join(process.cwd(), '.data', 'artwork');
+// Stable namespace so the same file path always maps to the same track id,
+// which keeps playlists intact across rescans.
+const TRACK_ID_NAMESPACE = '6ba7b811-9dad-11d1-80b4-00c04fd430c8';
+
+function trackIdForPath(filePath: string): string {
+  return uuidv5(filePath, TRACK_ID_NAMESPACE);
+}
 
 async function extractArtwork(metadata: IAudioMetadata, albumId: string): Promise<string | undefined> {
   const picture = metadata.common.picture?.[0];
@@ -84,6 +94,10 @@ export async function scanMusicDirectorySql(
   directory: string,
   onProgress: (progress: { total: number, processed: number }) => void
 ) {
+  // Capture playlist membership before clearing so legacy random track ids can
+  // be remapped to the stable, path-based ids after the rescan.
+  const existingPlaylistTracks = await getPlaylistTrackPaths();
+
   await clearMusicData();
 
   const filesToProcess: string[] = [];
@@ -119,7 +133,7 @@ export async function scanMusicDirectorySql(
       const album = await getOrCreateAlbum(metadata, albumName, artist);
 
       const track: Track = {
-        id: uuidv4(),
+        id: trackIdForPath(fullPath),
         filePath: fullPath,
         title: common.title ?? path.parse(fullPath).name,
         artist: artist,
@@ -136,7 +150,7 @@ export async function scanMusicDirectorySql(
     } catch (metaError) {
       console.warn(`Could not parse metadata for ${fullPath}: `, metaError);
       await createTrack({
-        id: uuidv4(),
+        id: trackIdForPath(fullPath),
         filePath: fullPath,
         title: path.parse(fullPath).name,
         artist: null,
@@ -164,5 +178,12 @@ export async function scanMusicDirectorySql(
 
   const workers = Array.from({ length: CONCURRENT_LIMIT }, () => worker());
   await Promise.all(workers);
+
+  for (const entry of existingPlaylistTracks) {
+    await remapPlaylistTrack(entry.playlist_id, entry.track_id, trackIdForPath(entry.filePath));
+  }
+
+  // Remove playlist entries whose files no longer exist after the rescan.
+  await deleteOrphanedPlaylistTracks();
 }
 
