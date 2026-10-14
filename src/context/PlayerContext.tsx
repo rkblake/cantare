@@ -9,10 +9,10 @@ interface PlayerState {
   currentTime: number;
   duration: number;
   volume: number;
-  currentTrack: Track | null;
 }
 
 interface PlayerContextType extends PlayerState {
+  currentTrack: Track | null;
   audioRef: React.RefObject<HTMLAudioElement | null>;
   playTrack: (trackOrIndex: Track | number) => void;
   togglePlayPause: () => void;
@@ -37,70 +37,62 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     currentTime: 0,
     duration: 0,
     volume: 1,
-    currentTrack: null,
   });
 
-  useEffect(() => {
-    if (playerState.currentTrackIndex !== null && playerState.queue.length > playerState.currentTrackIndex) {
-      // if (playerState.currentTrackIndex === null) return;
-      setPlayerState(prevState => ({
-        ...prevState,
-        currentTrack: prevState.queue[prevState.currentTrackIndex!] ?? null
-      }));
-    } else {
-      setPlayerState(prevState => ({
-        ...prevState,
-        currentTrack: null,
-        isPlaying: false,
-        currentTime: 0,
-        duration: 0
-      }));
-    }
-  }, [playerState.currentTrackIndex, playerState.queue]);
+  // Derive the current track synchronously so the audio effect never sees a
+  // stale `currentTrack` alongside a freshly-updated `isPlaying` flag.
+  const currentTrack = playerState.currentTrackIndex !== null
+    ? playerState.queue[playerState.currentTrackIndex] ?? null
+    : null;
 
   const playTrack = React.useCallback((trackOrIndex: Track | number) => {
-    let indexToPlay: number;
-    if (typeof trackOrIndex === 'number') {
-      indexToPlay = trackOrIndex;
-    } else {
-      const existingIndex = playerState.queue.findIndex(t => t.id === trackOrIndex.id);
-      if (existingIndex !== -1) {
-        indexToPlay = existingIndex;
+    setPlayerState(prevState => {
+      let indexToPlay: number;
+
+      if (typeof trackOrIndex === 'number') {
+        indexToPlay = trackOrIndex;
       } else {
-        indexToPlay = playerState.queue.length;
-        setPlayerState(prevState => ({
+        const existingIndex = prevState.queue.findIndex(t => t.id === trackOrIndex.id);
+        if (existingIndex !== -1) {
+          return {
+            ...prevState,
+            currentTrackIndex: existingIndex,
+            isPlaying: true,
+          };
+        }
+
+        // Append the new track and start it in the same update so the audio
+        // effect sees the track and the play flag together.
+        return {
           ...prevState,
           queue: [...prevState.queue, trackOrIndex],
-        }));
-        requestAnimationFrame(() => {
-          setPlayerState(prevState => ({ ...prevState, currentTrackIndex: indexToPlay, isPlaying: true }));
-        });
-        return;
+          currentTrackIndex: prevState.queue.length,
+          isPlaying: true,
+        };
       }
-    }
 
-    if (indexToPlay >= 0 && indexToPlay < playerState.queue.length) {
-      setPlayerState(prevState => ({
-        ...prevState,
-        currentTrackIndex: indexToPlay,
-        isPlaying: true,
-      }));
-    } else {
+      if (indexToPlay >= 0 && indexToPlay < prevState.queue.length) {
+        return {
+          ...prevState,
+          currentTrackIndex: indexToPlay,
+          isPlaying: true,
+        };
+      }
+
       console.warn("Attempted to play invalid track index: ", indexToPlay);
-      setPlayerState(prevState => ({
+      return {
         ...prevState,
         currentTrackIndex: null,
         isPlaying: false,
         currentTime: 0,
         duration: 0,
-        currentTrack: null,
-      }));
-    }
-  }, [playerState.queue]);
+      };
+    });
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
-    const track = playerState.currentTrack;
+    const track = currentTrack;
     if (audio && track) {
       const streamUrl = `/api/stream?q=${track.id}`;
       const fullStreamUrl = `${window.location.origin}${streamUrl}`;
@@ -124,7 +116,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       audio.pause();
       setPlayerState(prevState => ({ ...prevState, isPlaying: false, currentTime: 0, duration: 0 }));
     }
-  }, [playerState.currentTrack, playerState.isPlaying]);
+  }, [currentTrack, playerState.isPlaying]);
 
   const togglePlayPause = () => {
     const audio = audioRef.current;
@@ -132,7 +124,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (playerState.isPlaying) {
         audio.pause();
       } else {
-        if (playerState.currentTrack) {
+        if (currentTrack) {
           audio.play().catch(e => console.error("Error playing audio: ", e));
         } else if (playerState.queue.length > 0) {
           playTrack(0);
@@ -186,9 +178,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const removeFromQueue = (trackId: string) => {
     setPlayerState(prevState => {
       const newQueue = prevState.queue.filter(t => t.id !== trackId);
+      const prevTrack = prevState.currentTrackIndex !== null
+        ? prevState.queue[prevState.currentTrackIndex] ?? null
+        : null;
       let newTrackIndex = prevState.currentTrackIndex;
 
-      if (prevState.currentTrack?.id === trackId) {
+      if (prevTrack?.id === trackId) {
         // If the currently playing track is removed, play the next one
         if (newQueue.length === 0) {
           newTrackIndex = null;
@@ -212,11 +207,16 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const clearQueue = () => {
-    setPlayerState(prevState => ({
-      ...prevState,
-      queue: prevState.currentTrack ? [prevState.currentTrack] : [],
-      currentTrackIndex: prevState.currentTrack ? 0 : null,
-    }));
+    setPlayerState(prevState => {
+      const prevTrack = prevState.currentTrackIndex !== null
+        ? prevState.queue[prevState.currentTrackIndex] ?? null
+        : null;
+      return {
+        ...prevState,
+        queue: prevTrack ? [prevTrack] : [],
+        currentTrackIndex: prevTrack ? 0 : null,
+      };
+    });
   };
 
   const playPlaylist = (tracks: Track[], shuffle = false) => {
@@ -260,10 +260,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const handleTimeUpdate = () => setPlayerState(prevState => ({ ...prevState, currentTime: audio.currentTime }));
     const handleLoadedMetadata = () => setPlayerState(prevState => ({ ...prevState, duration: audio.duration }));
     const handleTrackEnded = () => {
-      if (playerState.currentTrack) {
+      if (currentTrack) {
         // Removing the finished track leaves the current index pointing at the next track,
         // so the queue advances without skipping an entry.
-        removeFromQueue(playerState.currentTrack.id);
+        removeFromQueue(currentTrack.id);
       }
     }
 
@@ -292,10 +292,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('error', handleError);
     }
-  }, [playNext, playerState.currentTrack]);
+  }, [currentTrack]);
 
   const contextValue: PlayerContextType = {
     ...playerState,
+    currentTrack,
     audioRef,
     playTrack,
     togglePlayPause,
