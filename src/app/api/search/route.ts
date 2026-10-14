@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { getTracks, getAlbums, getArtists } from '@/database/sqlite';
+import { getTracks, getAllAlbums, getAllArtists } from '@/database/sqlite';
 import type { Track, Album, Artist } from '@/types';
 
 export async function GET(req: NextRequest) {
@@ -9,8 +9,8 @@ export async function GET(req: NextRequest) {
   if (!q || typeof q !== 'string' || q.trim() === '') {
     // Return a default set of data if no query is provided
     const tracks = await getTracks();
-    const albums = await getAlbums();
-    const artists = await getArtists();
+    const albums = await getAllAlbums();
+    const artists = await getAllArtists();
 
     const recentTracks = tracks.slice(-10).reverse();
     const recentAlbums = albums.slice(-10).reverse();
@@ -26,8 +26,8 @@ export async function GET(req: NextRequest) {
   const query = q.toLowerCase().trim();
 
   const tracks = await getTracks();
-  const albums = await getAlbums();
-  const artists = await getArtists();
+  const albums = await getAllAlbums();
+  const artists = await getAllArtists();
 
   const filteredTracks = tracks.filter((track: Track) => {
     const matchesTitle = track.title?.toLowerCase().includes(query) ?? false;

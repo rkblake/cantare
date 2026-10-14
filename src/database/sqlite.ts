@@ -107,8 +107,8 @@ export async function getTrack(id: string): Promise<Track | undefined> {
   const track = await db.get<Track>(`
     SELECT
       t.*,
-      json_object('id', a.id, 'name', a.name, 'artworkPath', a.artworkPath) as album,
-      json_object('id', art.id, 'name', art.name) as artist
+      CASE WHEN a.id IS NOT NULL THEN json_object('id', a.id, 'name', a.name, 'artworkPath', a.artworkPath) ELSE NULL END as album,
+      CASE WHEN art.id IS NOT NULL THEN json_object('id', art.id, 'name', art.name) ELSE NULL END as artist
     FROM
       tracks AS t
     LEFT JOIN
@@ -120,8 +120,8 @@ export async function getTrack(id: string): Promise<Track | undefined> {
   `, id);
 
   if (track) {
-    track.album = JSON.parse(track.album as unknown as string) as Album;
-    track.artist = JSON.parse(track.artist as unknown as string) as Artist;
+    track.album = track.album ? JSON.parse(track.album as unknown as string) as Album : null;
+    track.artist = track.artist ? JSON.parse(track.artist as unknown as string) as Artist : null;
   }
 
   return track;
@@ -176,6 +176,21 @@ export async function getAlbums(page = 1, limit = 20): Promise<Album[]> {
   `, limit, offset);
 }
 
+export async function getAllAlbums(): Promise<Album[]> {
+  const db = await openDb();
+  return db.all<Album[]>(`
+    SELECT
+      album.id,
+      album.name,
+      art.name AS artist,
+      album.artworkPath
+    FROM
+      albums AS album
+    JOIN
+      artists AS art on album.artist_id = art.id
+  `);
+}
+
 export async function getAlbum(id: string): Promise<Album | undefined> {
   const db = await openDb();
   const album = await db.get<Album>(`
@@ -225,6 +240,11 @@ export async function getArtists(page = 1, limit = 20): Promise<Artist[]> {
   const db = await openDb();
   const offset = (page - 1) * limit;
   return db.all<Artist[]>('SELECT * FROM artists LIMIT ? OFFSET ?', limit, offset);
+}
+
+export async function getAllArtists(): Promise<Artist[]> {
+  const db = await openDb();
+  return db.all<Artist[]>('SELECT * FROM artists');
 }
 
 export async function getArtist(id: string): Promise<Artist | undefined> {
@@ -333,19 +353,22 @@ export async function updateSettings(settings: Partial<Settings>) {
   return Promise.all(promises);
 }
 
-export async function getTrackCount(): Promise<number | undefined> {
+export async function getTrackCount(): Promise<number> {
   const db = await openDb();
-  return db.get<number>('SELECT COUNT(*) FROM tracks');
+  const row = await db.get<{ count: number }>('SELECT COUNT(*) AS count FROM tracks');
+  return row?.count ?? 0;
 }
 
-export async function getAlbumCount(): Promise<number | undefined> {
+export async function getAlbumCount(): Promise<number> {
   const db = await openDb();
-  return db.get<number>('SELECT COUNT(*) FROM albums');
+  const row = await db.get<{ count: number }>('SELECT COUNT(*) AS count FROM albums');
+  return row?.count ?? 0;
 }
 
-export async function getArtistCount(): Promise<number | undefined> {
+export async function getArtistCount(): Promise<number> {
   const db = await openDb();
-  return db.get<number>('SELECT COUNT(*) FROM artists');
+  const row = await db.get<{ count: number }>('SELECT COUNT(*) AS count FROM artists');
+  return row?.count ?? 0;
 }
 
 export async function getTracksFromAlbum(album: Album): Promise<Track[] | undefined> {
@@ -376,18 +399,21 @@ export async function getTracksFromAlbum(album: Album): Promise<Track[] | undefi
 
 export async function getAlbumsFromArtist(artist: Artist): Promise<Album[] | undefined> {
   const db = await openDb();
-  const albums = db.all<Album[]>(`
+  return db.all<Album[]>(`
     SELECT
-      id,
-      name,
-      year,
-      artworkPath
+      alb.id,
+      alb.name,
+      alb.artist_id,
+      alb.year,
+      alb.artworkPath,
+      art.name AS artist
     FROM
-      albums
+      albums AS alb
+    JOIN
+      artists AS art ON art.id = alb.artist_id
     WHERE
-      artist_id = ?
+      alb.artist_id = ?
   `, [artist.id]);
-  return albums;
 }
 
 export async function getTracksFromPlaylist(playlist: Playlist): Promise<Track[] | undefined> {

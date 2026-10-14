@@ -14,7 +14,7 @@ type PlaylistData = {
 
 async function getPlaylistData(id: string): Promise<{ playlist: Playlist, tracks: Track[] }> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/playlists/${id}`, {
+    const res = await fetch(`/api/playlists/${id}`, {
       cache: 'no-store'
     });
     if (!res.ok) {

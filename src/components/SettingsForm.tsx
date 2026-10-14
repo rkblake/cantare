@@ -71,7 +71,7 @@ const SettingsForm: React.FC<SettingsFormProps> = ({ settings, onSave, onScan, d
         <button
           type="submit"
           className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={disabled ?? musicDirectory === settings.musicDirectory} // Disable save if no changes
+          disabled={disabled === true || musicDirectory === settings.musicDirectory} // Disable save if no changes
         >
           Save Settings
         </button>
@@ -80,7 +80,7 @@ const SettingsForm: React.FC<SettingsFormProps> = ({ settings, onSave, onScan, d
           type="button" // Important: use type="button" to prevent form submission
           onClick={handleScan}
           className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={disabled ?? !musicDirectory} // Disable scan if no directory set
+          disabled={disabled === true || !musicDirectory} // Disable scan if no directory set
         >
           Scan Music Library
         </button>

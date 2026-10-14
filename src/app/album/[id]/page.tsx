@@ -15,7 +15,7 @@ type AlbumData = {
 
 async function getAlbumData(id: string): Promise<{ album: Album, tracks: Track[] }> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/album/${id}`);
+    const res = await fetch(`/api/album/${id}`);
     if (!res.ok) {
       console.error("Failed to fetch album data:", res.status);
       return { album: {} as Album, tracks: [] };

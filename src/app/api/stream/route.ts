@@ -35,9 +35,32 @@ export async function GET(req: NextRequest) {
     const contentType = mimeTypes[ext] ?? 'application/octet-stream';
 
     if (range) {
-      const parts = range.replace(/bytes=/, "").split("-");
-      const start = parseInt(parts[0]!, 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const rangeMatch = /^bytes=(\d*)-(\d*)$/.exec(range);
+      const startStr = rangeMatch?.[1] ?? '';
+      const endStr = rangeMatch?.[2] ?? '';
+      const hasStart = startStr !== '';
+      const hasEnd = endStr !== '';
+
+      let start: number;
+      let end: number;
+      if (!hasStart && hasEnd) {
+        // Suffix range: the last N bytes of the file.
+        const suffixLength = parseInt(endStr, 10);
+        start = Math.max(fileSize - suffixLength, 0);
+        end = fileSize - 1;
+      } else {
+        start = parseInt(startStr, 10);
+        end = hasEnd ? parseInt(endStr, 10) : fileSize - 1;
+      }
+
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || start > end || start >= fileSize) {
+        return new NextResponse(null, {
+          status: 416,
+          headers: { 'Content-Range': `bytes */${fileSize}` },
+        });
+      }
+
+      end = Math.min(end, fileSize - 1);
       const chunksize = (end - start) + 1;
 
       const file = await fs.open(filePath, 'r');
@@ -73,6 +96,7 @@ export async function GET(req: NextRequest) {
       });
 
       const headers = new Headers();
+      headers.set('Accept-Ranges', 'bytes');
       headers.set('Content-Length', fileSize.toString());
       headers.set('Content-Type', contentType);
 

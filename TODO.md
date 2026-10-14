@@ -1,4 +1,4 @@
-- [ ] fix first time clicking on song not playing
+- [x] fix first time clicking on song not playing
 - [x] handle audio error
 - [x] hide modals when clicking outside
 - [ ] reorder tracks in playlist and queue
@@ -18,3 +18,4 @@
 - [x] names overflow on artist card (probably album card too)
 - [x] ability to click on artist name on album page
 - [ ] some albums have a cover.jpg in the folder use that if it exists
+- [ ] use first album for artist card in /library/artists
