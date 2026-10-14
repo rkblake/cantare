@@ -5,6 +5,7 @@ import {
   getTracksFromPlaylist,
   addToPlaylist,
   removeFromPlaylist,
+  updatePlaylist,
 } from "@/database/sqlite";
 import type { Playlist } from "@/types";
 
@@ -48,31 +49,21 @@ export async function PUT(
       trackIds: trackIds ?? playlist.trackIds,
     };
 
-    trackIds?.forEach((t) => {
-      void (async () => {
-        await addToPlaylist(playlist, t);
-      })();
-    })
+    await updatePlaylist(id, { name: updatedPlaylist.name });
+
+    if (trackIds) {
+      await Promise.all(trackIds.map((trackId) => addToPlaylist(playlist, trackId)));
+    }
 
     return NextResponse.json(updatedPlaylist);
 
   } else if (action === "remove") {
 
-    if (trackIds?.length == 0) {
+    if (!trackIds || trackIds.length === 0) {
       return new NextResponse("No trackIds given", { status: 400 });
     }
 
-    // const updatedPlaylist: Playlist = {
-    //   ...playlist,
-    //   trackIds: playlist.trackIds.filter(id => !trackIds?.includes(id)),
-    //   name: name ?? playlist.name,
-    // }
-
-    trackIds?.forEach((t) => {
-      void (async () => {
-        await removeFromPlaylist(playlist, t);
-      })();
-    })
+    await Promise.all(trackIds.map((trackId) => removeFromPlaylist(playlist, trackId)));
 
     return NextResponse.json({ status: 200 });
   }

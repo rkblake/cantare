@@ -42,7 +42,7 @@ const SettingsPage: React.FC = () => {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSettings),
+        body: JSON.stringify({ action: 'save', settingsData: newSettings }),
       });
       const result: unknown = await res.json();
       if (!res.ok) throw new Error(`Error saving settings: ${res.status} - ${(result as { error: string }).error}`);

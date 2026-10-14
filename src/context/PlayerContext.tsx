@@ -261,9 +261,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const handleLoadedMetadata = () => setPlayerState(prevState => ({ ...prevState, duration: audio.duration }));
     const handleTrackEnded = () => {
       if (playerState.currentTrack) {
+        // Removing the finished track leaves the current index pointing at the next track,
+        // so the queue advances without skipping an entry.
         removeFromQueue(playerState.currentTrack.id);
       }
-      playNext();
     }
 
     const handleEnded = () => handleTrackEnded();

@@ -4,33 +4,33 @@ import AlbumCard from '@/components/AlbumCard'; // Component to display an album
 import ArtistCard from '@/components/ArtistCard'; // Component to display an artist card
 import { Cog6ToothIcon } from '@heroicons/react/24/solid';
 import Link from 'next/link'; // For linking to other pages
+import { getAlbums, getAlbumsFromArtist, getArtists, getTracks } from '@/database/sqlite';
 
-
-type Response = {
-  tracks: Track[];
-  albums: Album[];
-  artists: Artist[];
-}
+// The library changes whenever a scan is run, so this page must not be prerendered.
+export const dynamic = 'force-dynamic';
 
 async function getHomepageData(): Promise<{ recentTracks: Track[], recentAlbums: Album[], featuredArtists: { artist: Artist, imageUrl: string }[] }> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/search?q=`); // Example: fetches some initial data
-    if (!res.ok) {
-      console.error("Failed to fetch homepage data:", res.status);
-      // Return empty data on failure
-      return { recentTracks: [], recentAlbums: [], featuredArtists: [] };
-    }
+    const [tracks, albums, artists] = await Promise.all([
+      getTracks(),
+      getAlbums(),
+      getArtists(),
+    ]);
 
-    const data = await res.json() as Response;
+    const recentTracks = tracks.slice(-10).reverse();
+    const recentAlbums = albums.slice(-10).reverse();
+    const featuredArtists = await Promise.all(
+      artists.slice(-10).reverse().map(async (artist) => {
+        const artistAlbums = await getAlbumsFromArtist(artist);
+        const artworkAlbum = artistAlbums?.find((album) => album.artworkPath);
+        const imageUrl = artworkAlbum
+          ? `/api/artwork/${artworkAlbum.id}`
+          : '/images/default-artist.svg';
+        return { artist, imageUrl };
+      })
+    );
 
-    const featuredArtistsWithImages = await Promise.all(data.artists.map(async artist => {
-      const imageUrlRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/artist/image/${artist.id}`);
-      const { imageUrl } = await imageUrlRes.json() as { imageUrl: string };
-      return { artist, imageUrl };
-    }));
-
-    return { recentTracks: data.tracks, recentAlbums: data.albums, featuredArtists: featuredArtistsWithImages };
-
+    return { recentTracks, recentAlbums, featuredArtists };
   } catch (error) {
     console.error("Error fetching homepage data:", error);
     return { recentTracks: [], recentAlbums: [], featuredArtists: [] }; // Return empty data on error

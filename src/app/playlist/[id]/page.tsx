@@ -49,6 +49,10 @@ export default function PlaylistPage({ params }: PageProps) {
     }).catch(e => console.error(e));
   }, [id]);
 
+  const handleTrackRemoved = (trackId: string) => {
+    setTracks((prevTracks) => prevTracks.filter((track) => track.id !== trackId));
+  };
+
   const handleDeletePlaylist = async () => {
     if (window.confirm(`Are you sure you want to delete the playlist "${playlist.name}"?`)) {
       try {
@@ -107,7 +111,7 @@ export default function PlaylistPage({ params }: PageProps) {
       <section>
         {tracks.length > 0 ? (
           <div className="bg-gray-800/30 rounded-lg">
-            <TrackList tracks={tracks} playlistId={id} />
+            <TrackList tracks={tracks} playlistId={id} onTrackRemoved={handleTrackRemoved} />
           </div>
         ) : (
           <div className="text-center text-gray-500 py-20">

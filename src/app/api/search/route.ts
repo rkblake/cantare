@@ -29,16 +29,18 @@ export async function GET(req: NextRequest) {
   const albums = await getAlbums();
   const artists = await getArtists();
 
-  const filteredTracks = tracks.filter((track: Track) =>
-    track.title?.toLowerCase().includes(query) ??
-    track.artist?.name?.toLowerCase().includes(query) ??
-    track.album?.name?.toLowerCase().includes(query)
-  );
+  const filteredTracks = tracks.filter((track: Track) => {
+    const matchesTitle = track.title?.toLowerCase().includes(query) ?? false;
+    const matchesArtist = track.artist?.name?.toLowerCase().includes(query) ?? false;
+    const matchesAlbum = track.album?.name?.toLowerCase().includes(query) ?? false;
+    return matchesTitle || matchesArtist || matchesAlbum;
+  });
 
-  const filteredAlbums = albums.filter((album: Album) =>
-    album.name?.toLowerCase().includes(query) ??
-    album.artist?.toLowerCase().includes(query)
-  );
+  const filteredAlbums = albums.filter((album: Album) => {
+    const matchesName = album.name?.toLowerCase().includes(query) ?? false;
+    const matchesArtist = album.artist?.toLowerCase().includes(query) ?? false;
+    return matchesName || matchesArtist;
+  });
 
   const filteredArtists = artists.filter((artist: Artist) =>
     artist.name?.toLowerCase().includes(query)

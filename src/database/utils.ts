@@ -36,6 +36,50 @@ async function extractArtwork(metadata: IAudioMetadata, albumId: string): Promis
   }
 }
 
+async function getOrCreateArtist(artistName: string): Promise<Artist> {
+  const existing = await getArtistByName(artistName);
+  if (existing) {
+    return existing;
+  }
+
+  const artist: Artist = {
+    id: uuidv4(),
+    name: artistName,
+    albumIds: [],
+    trackIds: [],
+  };
+  await createArtist(artist);
+
+  // Concurrent workers may insert the same artist first; re-read to get the canonical row.
+  return (await getArtistByName(artistName)) ?? artist;
+}
+
+async function getOrCreateAlbum(
+  metadata: IAudioMetadata,
+  albumName: string,
+  artist: Artist
+): Promise<Album> {
+  const existing = await getAlbumByNameAndArtistId(albumName, artist.id);
+  if (existing) {
+    return existing;
+  }
+
+  const albumId = uuidv4();
+  const album: Album = {
+    id: albumId,
+    name: albumName,
+    artist: artist.name,
+    artist_id: artist.id,
+    year: metadata.common.year ?? null,
+    trackIds: [],
+    artworkPath: await extractArtwork(metadata, albumId),
+  };
+  await createAlbum(album);
+
+  // Concurrent workers may insert the same album first; re-read to get the canonical row.
+  return (await getAlbumByNameAndArtistId(albumName, artist.id)) ?? album;
+}
+
 export async function scanMusicDirectorySql(
   directory: string,
   onProgress: (progress: { total: number, processed: number }) => void
@@ -69,37 +113,10 @@ export async function scanMusicDirectorySql(
       const common = metadata.common;
 
       const artistName = common.artist ?? common.albumartist ?? 'Unknown Artist';
-      let artist: Artist | undefined = await getArtistByName(artistName);
-      if (!artist) {
-        artist = {
-          id: uuidv4(),
-          name: artistName,
-          albumIds: [],
-          trackIds: [],
-        };
-        await createArtist(artist);
-      }
+      const artist = await getOrCreateArtist(artistName);
 
       const albumName = common.album ?? 'Unknown Album';
-      let album: Album | undefined = await getAlbumByNameAndArtistId(albumName, artist.id);
-      if (!album) {
-        const albumId = uuidv4();
-        album = {
-          id: albumId,
-          name: albumName,
-          artist: artist.name,
-          artist_id: artist.id,
-          year: common.year ?? null,
-          trackIds: [],
-          artworkPath: await extractArtwork(metadata, albumId),
-        };
-        await createAlbum(album);
-      }
-
-      if (!album) {
-        console.error(`Could not find or create album for track ${fullPath}`);
-        return;
-      }
+      const album = await getOrCreateAlbum(metadata, albumName, artist);
 
       const track: Track = {
         id: uuidv4(),
@@ -133,7 +150,7 @@ export async function scanMusicDirectorySql(
     }
   }
 
-  const CONCURRENT_LIMIT = os.cpus.length + 1;
+  const CONCURRENT_LIMIT = os.cpus().length + 1;
   const queue = [...filesToProcess];
 
   async function worker() {

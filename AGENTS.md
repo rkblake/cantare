@@ -12,7 +12,6 @@ be music player controls along the bottom of the window.
 - Next.js
 - React
 - Typescript
-- lowdb
 - tailwindcss
 - headlessui
 - heroicons

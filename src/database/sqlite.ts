@@ -392,17 +392,11 @@ export async function getAlbumsFromArtist(artist: Artist): Promise<Album[] | und
 
 export async function getTracksFromPlaylist(playlist: Playlist): Promise<Track[] | undefined> {
   const db = await openDb();
-  const tracks = db.all<Track[]>(`
+  const tracks = await db.all<Track[]>(`
     SELECT
-      t.id,
-      t.filePath,
-      t.title,
-      art.name AS artist,
-      alb.name AS album,
-      t.year,
-      t.duration,
-      t.trackNumber,
-      t.diskNumber
+      t.*,
+      json_object('id', alb.id, 'name', alb.name, 'artworkPath', alb.artworkPath) as album,
+      json_object('id', art.id, 'name', art.name) as artist
     FROM
       tracks as t
     INNER JOIN
@@ -414,7 +408,12 @@ export async function getTracksFromPlaylist(playlist: Playlist): Promise<Track[]
     WHERE
       pt.playlist_id = ?
   `, [playlist.id]);
-  return tracks;
+
+  return tracks.map((track): Track => ({
+    ...track,
+    album: track.album ? JSON.parse(track.album as unknown as string) as Album : null,
+    artist: track.artist ? JSON.parse(track.artist as unknown as string) as Artist : null,
+  }));
 }
 
 export async function getArtworkForTrack(track: Track): Promise<string | undefined> {

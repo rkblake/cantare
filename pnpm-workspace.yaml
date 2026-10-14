@@ -1,8 +1,8 @@
-onlyBuiltDependencies:
-  - '@tailwindcss/oxide'
-  - sharp
-  - sqlite3
-  - unrs-resolver
+allowBuilds:
+  '@tailwindcss/oxide': true
+  sharp: true
+  sqlite3: true
+  unrs-resolver: true
 
 overrides:
   '@eslint/plugin-kit@<0.3.3': '>=0.3.3'

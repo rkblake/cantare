@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json() as { action: string, settingsData: Settings };
+  const body = await req.json() as { action?: string, settingsData?: Settings };
   const { action, settingsData } = body;
 
   if (action === 'scan') {
@@ -23,6 +23,10 @@ export async function POST(req: NextRequest) {
     // This endpoint simply confirms the scan has been initiated.
     return NextResponse.json({ message: 'Scan initiated' });
   } else {
+    if (!settingsData) {
+      return NextResponse.json({ error: 'settingsData is required' }, { status: 400 });
+    }
+
     await updateSettings(settingsData);
     const settings = await getSettings();
     return NextResponse.json(settings);
