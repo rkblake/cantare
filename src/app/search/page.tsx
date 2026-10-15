@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import type { Track, Album, Artist } from '@/types';
+import type { Track, Album, ArtistWithImage } from '@/types';
 import TrackList from '@/components/TrackList';
 import AlbumCard from '@/components/AlbumCard';
 import ArtistCard from '@/components/ArtistCard';
@@ -26,41 +26,44 @@ const useDebounce = (value: string, delay: number) => {
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<{ tracks: Track[], albums: Album[], artists: { artist: Artist, imageUrl: string }[] }>({ tracks: [], albums: [], artists: [] });
+  const [results, setResults] = useState<{ tracks: Track[], albums: Album[], artists: ArtistWithImage[] }>({ tracks: [], albums: [], artists: [] });
   const [isLoading, setIsLoading] = useState(false);
   const debouncedQuery = useDebounce(query, 300);
 
-  const fetchResults = useCallback(async (searchQuery: string) => {
+  const fetchResults = useCallback(async (searchQuery: string, signal?: AbortSignal) => {
     if (searchQuery.trim() === '') {
       setResults({ tracks: [], albums: [], artists: [] });
+      setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`, { signal });
       if (res.ok) {
-        const data = await res.json() as { tracks: Track[], albums: Album[], artists: Artist[] };
-        const artistsWithImages = await Promise.all(data.artists.map(async (artist: Artist) => {
-          const imageUrlRes = await fetch(`/api/artist/image/${artist.id}`);
-          const { imageUrl } = await imageUrlRes.json() as { imageUrl: string };
-          return { artist, imageUrl };
-        }));
-        setResults({ ...data, artists: artistsWithImages });
+        const data = await res.json() as { tracks: Track[], albums: Album[], artists: ArtistWithImage[] };
+        setResults(data);
       } else {
         console.error("Failed to fetch search results");
         setResults({ tracks: [], albums: [], artists: [] });
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
       console.error("Error fetching search results:", error);
       setResults({ tracks: [], albums: [], artists: [] });
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    fetchResults(debouncedQuery).catch((e) => console.error(e));
+    const controller = new AbortController();
+    fetchResults(debouncedQuery, controller.signal).catch((e) => console.error(e));
+    return () => controller.abort();
   }, [debouncedQuery, fetchResults]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,8 +126,8 @@ export default function SearchPage() {
           <section>
             <h2 className="text-2xl font-bold mb-4 text-gray-200">Artists</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-              {results.artists.map(({ artist, imageUrl }) => (
-                <ArtistCard key={artist.id} artist={artist} imageUrl={imageUrl} />
+              {results.artists.map((artist) => (
+                <ArtistCard key={artist.id} artist={artist} imageUrl={artist.imageUrl ?? undefined} />
               ))}
             </div>
           </section>

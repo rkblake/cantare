@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 interface ContextMenuProps {
   x: number;
@@ -10,6 +10,7 @@ interface ContextMenuProps {
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onClose, children }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ left: x, top: y });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -26,15 +27,23 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onClose, children }) =>
     };
   }, [onClose]);
 
+  // Keep the menu inside the viewport by measuring it after mount.
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (!menu) return;
 
-  // Adjust position to ensure it stays within viewport
+    const margin = 8;
+    const { width, height } = menu.getBoundingClientRect();
+    const left = Math.max(margin, Math.min(x, window.innerWidth - width - margin));
+    const top = Math.max(margin, Math.min(y, window.innerHeight - height - margin));
+    setPosition({ left, top });
+  }, [x, y]);
+
   const style: React.CSSProperties = {
     position: 'fixed',
-    top: y,
-    left: x,
+    top: position.top,
+    left: position.left,
     zIndex: 1000, // High z-index
-    // Add logic here to check viewport bounds and adjust top/left if needed
-    // Example: If y + menuHeight > window.innerHeight, set top to window.innerHeight - menuHeight
   };
 
 

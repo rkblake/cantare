@@ -1,6 +1,6 @@
 import { open, type Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
-import type { Track, Album, Artist, Playlist, Settings } from '@/types';
+import type { Track, Album, Artist, ArtistWithImage, Playlist, Settings } from '@/types';
 import { databasePath } from './paths';
 
 let db: Database;
@@ -162,11 +162,6 @@ export async function updateTrack(id: string, track: Partial<Track>) {
   return db.run(`UPDATE tracks SET ${fields} WHERE id = ?`, [...values, id]);
 }
 
-export async function deleteTrack(id: string) {
-  const db = await openDb();
-  return db.run('DELETE FROM tracks WHERE id = ?', id);
-}
-
 export async function getAlbums(page = 1, limit = 20): Promise<Album[]> {
   const db = await openDb();
   const offset = (page - 1) * limit;
@@ -244,20 +239,30 @@ export async function updateAlbum(id: string, album: Partial<Album>) {
   return db.run(`UPDATE albums SET ${fields} WHERE id = ?`, [...values, id]);
 }
 
-export async function deleteAlbum(id: string) {
-  const db = await openDb();
-  return db.run('DELETE FROM albums WHERE id = ?', id);
-}
+const artistsWithImageSelect = `
+  SELECT
+    art.id,
+    art.name,
+    (
+      SELECT alb.artworkThumbPath
+      FROM albums AS alb
+      WHERE alb.artist_id = art.id AND alb.artworkThumbPath IS NOT NULL
+      ORDER BY COALESCE(alb.year, 0), alb.name COLLATE NOCASE
+      LIMIT 1
+    ) AS imageUrl
+  FROM artists AS art
+  ORDER BY art.name COLLATE NOCASE, art.id
+`;
 
-export async function getArtists(page = 1, limit = 20): Promise<Artist[]> {
+export async function getArtistsWithImage(page = 1, limit = 20): Promise<ArtistWithImage[]> {
   const db = await openDb();
   const offset = (page - 1) * limit;
-  return db.all<Artist[]>('SELECT * FROM artists ORDER BY name COLLATE NOCASE, id LIMIT ? OFFSET ?', limit, offset);
+  return db.all<ArtistWithImage[]>(`${artistsWithImageSelect} LIMIT ? OFFSET ?`, limit, offset);
 }
 
-export async function getAllArtists(): Promise<Artist[]> {
+export async function getAllArtistsWithImage(): Promise<ArtistWithImage[]> {
   const db = await openDb();
-  return db.all<Artist[]>('SELECT * FROM artists ORDER BY name COLLATE NOCASE, id');
+  return db.all<ArtistWithImage[]>(artistsWithImageSelect);
 }
 
 export async function getArtist(id: string): Promise<Artist | undefined> {
@@ -345,11 +350,6 @@ export async function updateArtist(id: string, artist: Partial<Artist>) {
   return db.run(`UPDATE artists SET ${fields} WHERE id = ?`, [...values, id]);
 }
 
-export async function deleteArtist(id: string) {
-  const db = await openDb();
-  return db.run('DELETE FROM artists WHERE id = ?', id);
-}
-
 export async function getPlaylists(): Promise<Playlist[]> {
   const db = await openDb();
   return db.all<Playlist[]>('SELECT * FROM playlists');
@@ -403,7 +403,9 @@ export async function getSettings(): Promise<Settings> {
   );
   const settings: Settings = { musicDirectory: '', databasePath: '' };
   for (const row of rows) {
-    settings[row.key] = row.value;
+    if (row.key === 'musicDirectory' || row.key === 'databasePath') {
+      settings[row.key] = row.value;
+    }
   }
   return settings;
 }
@@ -519,17 +521,3 @@ export async function getTracksFromPlaylist(playlist: Playlist): Promise<Track[]
   }));
 }
 
-export async function getArtworkForTrack(track: Track): Promise<string | undefined> {
-  const db = await openDb();
-  const artworkPath = db.get<string>(`
-    SELECT
-      a.artworkPath
-    FROM
-      albums AS a
-    INNER JOIN
-      tracks AS t ON t.album_id = a.id
-    WHERE
-      t.id = ?
-  `, [track.id]);
-  return artworkPath;
-}

@@ -30,6 +30,10 @@ export interface Artist {
   trackIds: string[];
 }
 
+export interface ArtistWithImage extends Artist {
+  imageUrl: string | null;
+}
+
 export interface Playlist {
   id: string;
   name: string;

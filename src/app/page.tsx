@@ -1,32 +1,25 @@
-import type { Track, Album, Artist } from '@/types'; // Import your types
+import type { Track, Album, ArtistWithImage } from '@/types'; // Import your types
 import TrackList from '@/components/TrackList'; // Component to display tracks
 import AlbumCard from '@/components/AlbumCard'; // Component to display an album card
 import ArtistCard from '@/components/ArtistCard'; // Component to display an artist card
 import { Cog6ToothIcon } from '@heroicons/react/24/solid';
 import Link from 'next/link'; // For linking to other pages
-import { getAlbums, getAlbumsFromArtist, getArtists, getTracks } from '@/database/sqlite';
+import { getAllArtistsWithImage, getAlbums, getTracks } from '@/database/sqlite';
 
 // The library changes whenever a scan is run, so this page must not be prerendered.
 export const dynamic = 'force-dynamic';
 
-async function getHomepageData(): Promise<{ recentTracks: Track[], recentAlbums: Album[], featuredArtists: { artist: Artist, imageUrl: string }[] }> {
+async function getHomepageData(): Promise<{ recentTracks: Track[], recentAlbums: Album[], featuredArtists: ArtistWithImage[] }> {
   try {
     const [tracks, albums, artists] = await Promise.all([
       getTracks(),
       getAlbums(),
-      getArtists(),
+      getAllArtistsWithImage(),
     ]);
 
     const recentTracks = tracks.slice(-10).reverse();
     const recentAlbums = albums.slice(-10).reverse();
-    const featuredArtists = await Promise.all(
-      artists.slice(-10).reverse().map(async (artist) => {
-        const artistAlbums = await getAlbumsFromArtist(artist);
-        const imageUrl = artistAlbums?.find((album) => album.artworkPath)?.artworkPath
-          ?? '/images/default-artist.svg';
-        return { artist, imageUrl };
-      })
-    );
+    const featuredArtists = artists.slice(-10).reverse();
 
     return { recentTracks, recentAlbums, featuredArtists };
   } catch (error) {
@@ -78,8 +71,8 @@ export default async function HomePage() {
         <section>
           <h2 className="text-2xl font-bold mb-6 text-gray-200">Featured Artists</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {featuredArtists.map(({ artist, imageUrl }) => (
-              <ArtistCard key={artist.id} artist={artist} imageUrl={imageUrl} />
+            {featuredArtists.map((artist) => (
+              <ArtistCard key={artist.id} artist={artist} imageUrl={artist.imageUrl ?? undefined} />
             ))}
           </div>
         </section>

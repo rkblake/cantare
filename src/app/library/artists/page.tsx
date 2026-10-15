@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import type { Artist } from '@/types';
+import type { ArtistWithImage } from '@/types';
 import ArtistCard from '@/components/ArtistCard';
 
 export default function ArtistsPage() {
-  const [artists, setArtists] = useState<Artist[]>([]);
+  const [artists, setArtists] = useState<ArtistWithImage[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ export default function ArtistsPage() {
     setLoading(true);
     try {
       const response = await fetch(`/api/artists?page=${page}&limit=20`);
-      const result = await response.json() as { data: Artist[], hasMore: boolean };
+      const result = await response.json() as { data: ArtistWithImage[], hasMore: boolean };
       setArtists((prevArtists) => [...prevArtists, ...result.data]);
       setHasMore(result.hasMore);
       setPage((prevPage) => prevPage + 1);
@@ -39,7 +39,7 @@ export default function ArtistsPage() {
       <h1 className="text-4xl font-extrabold tracking-tight text-white">Artists</h1>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mt-4">
         {artists.map((artist) => (
-          <ArtistCard key={artist.id} artist={artist} />
+          <ArtistCard key={artist.id} artist={artist} imageUrl={artist.imageUrl ?? undefined} />
         ))}
       </div>
       {loading && <p className="text-white">Loading...</p>}

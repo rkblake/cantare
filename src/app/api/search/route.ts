@@ -1,33 +1,20 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { getTracks, getAllAlbums, getAllArtists } from '@/database/sqlite';
-import type { Track, Album, Artist } from '@/types';
+import { getTracks, getAllAlbums, getAllArtistsWithImage } from '@/database/sqlite';
+import type { Track, Album, ArtistWithImage } from '@/types';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get('q');
 
-  if (!q || typeof q !== 'string' || q.trim() === '') {
-    // Return a default set of data if no query is provided
-    const tracks = await getTracks();
-    const albums = await getAllAlbums();
-    const artists = await getAllArtists();
-
-    const recentTracks = tracks.slice(-10).reverse();
-    const recentAlbums = albums.slice(-10).reverse();
-    const featuredArtists = artists.slice(-10).reverse();
-
-    return NextResponse.json({
-      tracks: recentTracks,
-      albums: recentAlbums,
-      artists: featuredArtists,
-    });
+  if (!q || q.trim() === '') {
+    return NextResponse.json({ tracks: [], albums: [], artists: [] });
   }
 
   const query = q.toLowerCase().trim();
 
   const tracks = await getTracks();
   const albums = await getAllAlbums();
-  const artists = await getAllArtists();
+  const artists = await getAllArtistsWithImage();
 
   const filteredTracks = tracks.filter((track: Track) => {
     const matchesTitle = track.title?.toLowerCase().includes(query) ?? false;
@@ -42,7 +29,7 @@ export async function GET(req: NextRequest) {
     return matchesName || matchesArtist;
   });
 
-  const filteredArtists = artists.filter((artist: Artist) =>
+  const filteredArtists = artists.filter((artist: ArtistWithImage) =>
     artist.name?.toLowerCase().includes(query)
   );
 

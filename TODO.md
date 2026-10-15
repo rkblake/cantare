@@ -5,20 +5,29 @@
 - [x] remove from playlist
 - [ ] favorite tracks and albums
 - [x] fetch album artwork
-- [ ] generate artwork thumbnails
+- [x] generate artwork thumbnails
 - [ ] ways of sorting tracklists, albums, and artists
 - [x] **Swap lowdb for sqlite3**
   - [x] Design SQLite schema
   - [x] Implement SQLite database utility
   - [x] Refactor application to use SQLite utility
   - [x] Remove lowdb dependency
-- [ ] artworkPath to thumbnail or original album cover path
+- [x] artworkPath to thumbnail or original album cover path
 - [x] loading percentage on scan
-- [ ] searching hits artist image api endpoint too many times
+- [x] searching hits artist image api endpoint too many times
 - [x] names overflow on artist card (probably album card too)
 - [x] ability to click on artist name on album page
-- [ ] some albums have a cover.jpg in the folder use that if it exists
-- [ ] use first album for artist card in /library/artists
+- [x] some albums have a cover.jpg in the folder use that if it exists
+- [x] use first album for artist card in /library/artists
 - [ ] put playing icon next to currently playing track in track list view
     - [ ] optional: a different icon for queued tracks?
 - [x] make sure tracks are in order in album track list
+- [ ] add to new playlist in right click context menu
+
+## Moderate improvements
+- [ ] persist the queue and volume across reloads; integrate the Media Session API
+- [ ] add createdAt to albums/tracks so "Recent" on the homepage is meaningful (and use getAll* there)
+- [ ] move search filtering into SQL (LIKE) with pagination instead of loading all tracks into memory
+- [ ] surface tracks with missing metadata under "Unknown Album/Artist" instead of hiding them (INNER JOINs)
+- [ ] make scans non-destructive: scan into a temp/upsert and swap instead of clearing the library first
+- [ ] replace/remove the dynamic UPDATE builders (updateTrack/updateAlbum/updateArtist) that interpolate object keys

@@ -92,9 +92,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     const audio = audioRef.current;
-    const track = currentTrack;
-    if (audio && track) {
-      const streamUrl = `/api/stream?q=${track.id}`;
+    if (audio && currentTrack) {
+      const streamUrl = `/api/stream?q=${currentTrack.id}`;
       const fullStreamUrl = `${window.location.origin}${streamUrl}`;
       if (audio.src !== fullStreamUrl) {
         audio.src = fullStreamUrl;
@@ -111,7 +110,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       } else {
         audio.pause();
       }
-    } else if (audio && !track) {
+    } else if (audio && !currentTrack) {
       // Don't set empty src, just pause and reset state
       audio.pause();
       setPlayerState(prevState => ({ ...prevState, isPlaying: false, currentTime: 0, duration: 0 }));
@@ -243,6 +242,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const setVolume = (volume: number) => {
     const newVolume = Math.max(0, Math.min(1, volume));
+    try {
+      window.localStorage.setItem('cantare:volume', String(newVolume));
+    } catch {
+      // Ignore storage failures (e.g. private browsing).
+    }
     setPlayerState(prevState => ({ ...prevState, volume: newVolume }));
   };
 
@@ -252,6 +256,19 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       audio.volume = playerState.volume;
     }
   }, [audioRef, playerState.volume]);
+
+  // Restore the saved volume once on mount (kept out of the initial state to
+  // avoid a server/client hydration mismatch).
+  useEffect(() => {
+    const storedVolume = window.localStorage.getItem('cantare:volume');
+    if (storedVolume === null) {
+      return;
+    }
+    const parsedVolume = Number(storedVolume);
+    if (Number.isFinite(parsedVolume) && parsedVolume >= 0 && parsedVolume <= 1) {
+      setPlayerState(prevState => ({ ...prevState, volume: parsedVolume }));
+    }
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
