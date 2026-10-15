@@ -30,6 +30,7 @@ export async function createTables() {
       duration REAL,
       trackNumber INTEGER,
       diskNumber INTEGER,
+      lastScanId TEXT,
       FOREIGN KEY (album_id) REFERENCES albums(id),
       FOREIGN KEY (artist_id) REFERENCES artists(id)
     );
@@ -81,6 +82,11 @@ export async function createTables() {
   const albumColumns = await db.all<{ name: string }[]>('PRAGMA table_info(albums)');
   if (!albumColumns.some((column) => column.name === 'artworkThumbPath')) {
     await db.exec('ALTER TABLE albums ADD COLUMN artworkThumbPath TEXT');
+  }
+
+  const trackColumns = await db.all<{ name: string }[]>('PRAGMA table_info(tracks)');
+  if (!trackColumns.some((column) => column.name === 'lastScanId')) {
+    await db.exec('ALTER TABLE tracks ADD COLUMN lastScanId TEXT');
   }
 
   await updateSettings({ databasePath })
@@ -135,22 +141,25 @@ export async function getTrack(id: string): Promise<Track | undefined> {
   return track;
 }
 
-export async function createTrack(track: Track) {
+export async function upsertTrack(track: Track, scanId: string) {
   const db = await openDb();
   return db.run(
-    'INSERT INTO tracks (id, filePath, title, artist_id, album_id, albumArtist, genre, year, duration, trackNumber, diskNumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    `INSERT OR REPLACE INTO tracks
+      (id, filePath, title, artist_id, album_id, albumArtist, genre, year, duration, trackNumber, diskNumber, lastScanId)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       track.id,
       track.filePath,
       track.title,
-      track.artist?.id,
-      track.album?.id,
+      track.artist?.id ?? null,
+      track.album?.id ?? null,
       track.albumArtist,
       track.genre,
       track.year,
       track.duration,
       track.trackNumber,
       track.diskNumber,
+      scanId,
     ]
   );
 }
@@ -288,11 +297,23 @@ export async function createArtist(artist: Artist) {
   ]);
 }
 
-export async function clearMusicData() {
+export async function deleteStaleTracks(scanId: string) {
   const db = await openDb();
-  await db.exec('DELETE FROM tracks');
-  await db.exec('DELETE FROM albums');
-  await db.exec('DELETE FROM artists');
+  return db.run('DELETE FROM tracks WHERE lastScanId IS NOT ?', scanId);
+}
+
+export async function deleteEmptyAlbums() {
+  const db = await openDb();
+  return db.run(
+    'DELETE FROM albums WHERE id NOT IN (SELECT DISTINCT album_id FROM tracks WHERE album_id IS NOT NULL)'
+  );
+}
+
+export async function deleteEmptyArtists() {
+  const db = await openDb();
+  return db.run(
+    'DELETE FROM artists WHERE id NOT IN (SELECT DISTINCT artist_id FROM tracks WHERE artist_id IS NOT NULL)'
+  );
 }
 
 export async function deleteOrphanedPlaylistTracks() {

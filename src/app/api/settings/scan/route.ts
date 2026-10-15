@@ -1,7 +1,11 @@
 import { getSettings } from '@/database/sqlite';
-import { scanMusicDirectorySql } from '@/database/utils';
+import { isScanInProgress, scanMusicDirectorySql } from '@/database/utils';
 
 export async function GET() {
+  if (isScanInProgress()) {
+    return new Response('Scan already in progress', { status: 409 });
+  }
+
   const settings = await getSettings();
   const musicDirectory = settings?.musicDirectory;
 

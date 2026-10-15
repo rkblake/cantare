@@ -1,22 +1,25 @@
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
+import { randomUUID } from 'crypto';
 import sharp from 'sharp';
 import { parseFile } from 'music-metadata';
-import type { Track, Album, Artist } from '@/types';
+import type { Album, Artist } from '@/types';
 import { v5 as uuidv5 } from 'uuid';
 import type { IAudioMetadata } from 'music-metadata';
 import {
   createAlbum,
   createArtist,
-  createTrack,
-  getAlbumByNameAndArtistId,
-  getArtistByName,
-  clearMusicData,
+  deleteEmptyAlbums,
+  deleteEmptyArtists,
   deleteOrphanedPlaylistTracks,
+  deleteStaleTracks,
+  getAlbumByNameAndArtistId,
   getArtworkPaths,
+  getArtistByName,
   getPlaylistTrackPaths,
-  remapPlaylistTrack
+  remapPlaylistTrack,
+  upsertTrack
 } from "@/database/sqlite";
 import { artworkDir } from './paths';
 
@@ -185,103 +188,131 @@ async function getOrCreateAlbum(
   return (await getAlbumByNameAndArtistId(albumName, artist.id)) ?? album;
 }
 
+let scanInProgress = false;
+
+export function isScanInProgress(): boolean {
+  return scanInProgress;
+}
+
 export async function scanMusicDirectorySql(
   directory: string,
   onProgress: (progress: { total: number, processed: number }) => void
 ) {
-  // Capture playlist membership before clearing so legacy random track ids can
-  // be remapped to the stable, path-based ids after the rescan.
-  const existingPlaylistTracks = await getPlaylistTrackPaths();
+  if (scanInProgress) {
+    throw new Error('A scan is already in progress');
+  }
+  scanInProgress = true;
 
-  await clearMusicData();
+  try {
+    const rootStat = await fs.stat(directory);
+    if (!rootStat.isDirectory()) {
+      throw new Error(`Music directory is not a directory: ${directory}`);
+    }
 
-  const filesToProcess: string[] = [];
-  async function discoverFiles(dir: string) {
-    try {
-      const entries = await fs.readdir(dir, { withFileTypes: true });
-      for (const entry of entries) {
-        const fullPath = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-          await discoverFiles(fullPath);
-        } else if (entry.isFile() && /\.(mp3|flac|m4a|aac|ogg|oga|opus|wav|aiff|aif|wma)$/i.test(entry.name)) {
-          filesToProcess.push(fullPath);
+    const scanId = randomUUID();
+
+    // Capture playlist membership before sweeping so legacy random track ids can
+    // be remapped to the stable, path-based ids.
+    const existingPlaylistTracks = await getPlaylistTrackPaths();
+
+    const filesToProcess: string[] = [];
+    let discoveryHadErrors = false;
+    async function discoverFiles(dir: string) {
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            await discoverFiles(fullPath);
+          } else if (entry.isFile() && /\.(mp3|flac|m4a|aac|ogg|oga|opus|wav|aiff|aif|wma)$/i.test(entry.name)) {
+            filesToProcess.push(fullPath);
+          }
+        }
+      } catch (discoverError) {
+        discoveryHadErrors = true;
+        console.error(`Could not read directory ${dir} for discovery:`, discoverError);
+      }
+    }
+
+    await discoverFiles(directory);
+    const totalFiles = filesToProcess.length;
+    let processedFiles = 0;
+
+    async function processFile(fullPath: string) {
+      try {
+        const metadata = await parseFile(fullPath);
+        const common = metadata.common;
+
+        const artistName = common.artist ?? common.albumartist ?? 'Unknown Artist';
+        const artist = await getOrCreateArtist(artistName);
+
+        const albumName = common.album ?? 'Unknown Album';
+        const album = await getOrCreateAlbum(metadata, albumName, artist, fullPath);
+
+        await upsertTrack({
+          id: trackIdForPath(fullPath),
+          filePath: fullPath,
+          title: common.title ?? path.parse(fullPath).name,
+          artist: artist,
+          album: album,
+          albumArtist: common.albumartist ?? common.artist ?? 'Unknown Artist',
+          genre: Array.isArray(common.genre) ? common.genre.join(', ') : common.genre ?? null,
+          year: common.year ?? null,
+          duration: metadata.format.duration ?? null,
+          trackNumber: common.track?.no,
+          diskNumber: common.disk?.no,
+        }, scanId);
+      } catch (metaError) {
+        console.warn(`Could not parse metadata for ${fullPath}: `, metaError);
+        await upsertTrack({
+          id: trackIdForPath(fullPath),
+          filePath: fullPath,
+          title: path.parse(fullPath).name,
+          artist: null,
+          album: null,
+          albumArtist: null,
+          genre: null, year: null, duration: null, trackNumber: null, diskNumber: null
+        }, scanId);
+      } finally {
+        processedFiles++;
+        onProgress({ total: totalFiles, processed: processedFiles });
+      }
+    }
+
+    const CONCURRENT_LIMIT = os.cpus().length + 1;
+    const queue = [...filesToProcess];
+
+    async function worker() {
+      while (queue.length > 0) {
+        const file = queue.shift();
+        if (file) {
+          await processFile(file);
         }
       }
-    } catch (discoverError) {
-      console.error(`Could not read directory ${dir} for discovery:`, discoverError);
     }
-  }
 
-  await discoverFiles(directory);
-  const totalFiles = filesToProcess.length;
-  let processedFiles = 0;
+    const workers = Array.from({ length: CONCURRENT_LIMIT }, () => worker());
+    await Promise.all(workers);
 
-  async function processFile(fullPath: string) {
-    try {
-      const metadata = await parseFile(fullPath);
-      const common = metadata.common;
-
-      const artistName = common.artist ?? common.albumartist ?? 'Unknown Artist';
-      const artist = await getOrCreateArtist(artistName);
-
-      const albumName = common.album ?? 'Unknown Album';
-      const album = await getOrCreateAlbum(metadata, albumName, artist, fullPath);
-
-      const track: Track = {
-        id: trackIdForPath(fullPath),
-        filePath: fullPath,
-        title: common.title ?? path.parse(fullPath).name,
-        artist: artist,
-        album: album,
-        albumArtist: common.albumartist ?? common.artist ?? 'Unknown Artist',
-        genre: Array.isArray(common.genre) ? common.genre.join(', ') : common.genre ?? null,
-        year: common.year ?? null,
-        duration: metadata.format.duration ?? null,
-        trackNumber: common.track?.no,
-        diskNumber: common.disk?.no,
-      };
-      await createTrack(track);
-
-    } catch (metaError) {
-      console.warn(`Could not parse metadata for ${fullPath}: `, metaError);
-      await createTrack({
-        id: trackIdForPath(fullPath),
-        filePath: fullPath,
-        title: path.parse(fullPath).name,
-        artist: null,
-        album: null,
-        albumArtist: null,
-        genre: null, year: null, duration: null, trackNumber: null, diskNumber: null
-      });
-    } finally {
-      processedFiles++;
-      onProgress({ total: totalFiles, processed: processedFiles });
+    for (const entry of existingPlaylistTracks) {
+      await remapPlaylistTrack(entry.playlist_id, entry.track_id, trackIdForPath(entry.filePath));
     }
-  }
 
-  const CONCURRENT_LIMIT = os.cpus().length + 1;
-  const queue = [...filesToProcess];
-
-  async function worker() {
-    while (queue.length > 0) {
-      const file = queue.shift();
-      if (file) {
-        await processFile(file);
-      }
+    // Sweep tracks that were not seen this scan, but only when discovery
+    // completed cleanly so a transient read error can't erase the library.
+    if (!discoveryHadErrors) {
+      await deleteStaleTracks(scanId);
+      await deleteEmptyAlbums();
+      await deleteEmptyArtists();
     }
+
+    // Remove playlist entries whose tracks no longer exist.
+    await deleteOrphanedPlaylistTracks();
+
+    // Remove artwork files no longer referenced by any album.
+    await deleteOrphanedArtwork();
+  } finally {
+    scanInProgress = false;
   }
-
-  const workers = Array.from({ length: CONCURRENT_LIMIT }, () => worker());
-  await Promise.all(workers);
-
-  for (const entry of existingPlaylistTracks) {
-    await remapPlaylistTrack(entry.playlist_id, entry.track_id, trackIdForPath(entry.filePath));
-  }
-
-  // Remove playlist entries whose files no longer exist after the rescan.
-  await deleteOrphanedPlaylistTracks();
-
-  // Remove artwork files no longer referenced by any album.
-  await deleteOrphanedArtwork();
 }
 

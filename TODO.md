@@ -29,5 +29,20 @@
 - [ ] add createdAt to albums/tracks so "Recent" on the homepage is meaningful (and use getAll* there)
 - [ ] move search filtering into SQL (LIKE) with pagination instead of loading all tracks into memory
 - [ ] surface tracks with missing metadata under "Unknown Album/Artist" instead of hiding them (INNER JOINs)
-- [ ] make scans non-destructive: scan into a temp/upsert and swap instead of clearing the library first
 - [ ] replace/remove the dynamic UPDATE builders (updateTrack/updateAlbum/updateArtist) that interpolate object keys
+
+## Library scanning improvements
+- [x] prevent concurrent scans (scan-in-progress lock)
+- [x] non-destructive scan: upsert tracks and sweep only files that no longer exist (don't clear the library first)
+- [ ] incremental scanning: skip unchanged files using file mtime/size
+- [ ] batch DB writes in a transaction and tune PRAGMAs (WAL, synchronous=NORMAL)
+- [ ] group albums by albumartist so compilations aren't split per track artist
+- [ ] skip re-extracting artwork when it already exists; dedupe concurrent extraction per album
+- [ ] throttle scan progress events (every N files or ~100ms)
+- [ ] stream a "discovering files" progress phase
+- [ ] report a scan summary (succeeded/skipped/failed) and surface parse failures
+- [ ] allow cancelling a running scan
+- [ ] skip hidden/system directories during discovery (.git, @eaDir, $RECYCLE.BIN, .Trash-*)
+- [ ] replace the O(n²) queue.shift() worker loop with an index cursor
+- [ ] right-size the worker pool (fewer, parse-parallel / write-serial)
+- [ ] optionally follow symlinked directories safely (currently skipped)
