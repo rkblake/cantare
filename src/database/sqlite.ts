@@ -244,9 +244,9 @@ const artistsWithImageSelect = `
     art.id,
     art.name,
     (
-      SELECT alb.artworkThumbPath
+      SELECT alb.artworkPath
       FROM albums AS alb
-      WHERE alb.artist_id = art.id AND alb.artworkThumbPath IS NOT NULL
+      WHERE alb.artist_id = art.id AND alb.artworkPath IS NOT NULL
       ORDER BY COALESCE(alb.year, 0), alb.name COLLATE NOCASE
       LIMIT 1
     ) AS imageUrl
