@@ -8,6 +8,8 @@ import type { Album, Artist } from '@/types';
 import { v5 as uuidv5 } from 'uuid';
 import type { IAudioMetadata } from 'music-metadata';
 import {
+  beginTransaction,
+  commitTransaction,
   createAlbum,
   createArtist,
   deleteEmptyAlbums,
@@ -21,6 +23,7 @@ import {
   getTrackFileInfo,
   markTrackSeen,
   remapPlaylistTrack,
+  rollbackTransaction,
   upsertTrack
 } from "@/database/sqlite";
 import { artworkDir } from './paths';
@@ -318,25 +321,35 @@ export async function scanMusicDirectorySql(
       }
     }
 
-    const workers = Array.from({ length: CONCURRENT_LIMIT }, () => worker());
-    await Promise.all(workers);
+    // Wrap all DB writes for this scan in one transaction so we pay a single
+    // commit instead of an fsync per row (and roll back cleanly on failure).
+    await beginTransaction();
+    try {
+      const workers = Array.from({ length: CONCURRENT_LIMIT }, () => worker());
+      await Promise.all(workers);
 
-    for (const entry of existingPlaylistTracks) {
-      await remapPlaylistTrack(entry.playlist_id, entry.track_id, trackIdForPath(entry.filePath));
+      for (const entry of existingPlaylistTracks) {
+        await remapPlaylistTrack(entry.playlist_id, entry.track_id, trackIdForPath(entry.filePath));
+      }
+
+      // Sweep tracks that were not seen this scan, but only when discovery
+      // completed cleanly so a transient read error can't erase the library.
+      if (!discoveryHadErrors) {
+        await deleteStaleTracks(scanId);
+        await deleteEmptyAlbums();
+        await deleteEmptyArtists();
+      }
+
+      // Remove playlist entries whose tracks no longer exist.
+      await deleteOrphanedPlaylistTracks();
+      await commitTransaction();
+    } catch (transactionError) {
+      await rollbackTransaction();
+      throw transactionError;
     }
 
-    // Sweep tracks that were not seen this scan, but only when discovery
-    // completed cleanly so a transient read error can't erase the library.
-    if (!discoveryHadErrors) {
-      await deleteStaleTracks(scanId);
-      await deleteEmptyAlbums();
-      await deleteEmptyArtists();
-    }
-
-    // Remove playlist entries whose tracks no longer exist.
-    await deleteOrphanedPlaylistTracks();
-
-    // Remove artwork files no longer referenced by any album.
+    // Remove artwork files no longer referenced by any album (after commit, since
+    // this touches the filesystem rather than the database).
     await deleteOrphanedArtwork();
   } finally {
     scanInProgress = false;

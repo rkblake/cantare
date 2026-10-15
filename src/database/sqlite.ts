@@ -11,8 +11,27 @@ export async function openDb() {
       filename: databasePath,
       driver: sqlite3.Database,
     });
+    // WAL + NORMAL give much faster writes while remaining crash-safe.
+    await db.exec('PRAGMA journal_mode = WAL;');
+    await db.exec('PRAGMA synchronous = NORMAL;');
+    await db.exec('PRAGMA busy_timeout = 5000;');
   }
   return db;
+}
+
+export async function beginTransaction() {
+  const db = await openDb();
+  await db.exec('BEGIN');
+}
+
+export async function commitTransaction() {
+  const db = await openDb();
+  await db.exec('COMMIT');
+}
+
+export async function rollbackTransaction() {
+  const db = await openDb();
+  await db.exec('ROLLBACK');
 }
 
 export async function createTables() {
