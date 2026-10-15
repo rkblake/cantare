@@ -18,6 +18,8 @@ import {
   getArtworkPaths,
   getArtistByName,
   getPlaylistTrackPaths,
+  getTrackFileInfo,
+  markTrackSeen,
   remapPlaylistTrack,
   upsertTrack
 } from "@/database/sqlite";
@@ -238,41 +240,66 @@ export async function scanMusicDirectorySql(
     const totalFiles = filesToProcess.length;
     let processedFiles = 0;
 
+    // Known files keyed by track id, so unchanged files can skip re-parsing.
+    const existingFileInfo = new Map(
+      (await getTrackFileInfo()).map((row) => [row.id, row])
+    );
+
     async function processFile(fullPath: string) {
+      const id = trackIdForPath(fullPath);
       try {
-        const metadata = await parseFile(fullPath);
-        const common = metadata.common;
+        let stat;
+        try {
+          stat = await fs.stat(fullPath);
+        } catch (statError) {
+          // File disappeared between discovery and processing; leave it unseen
+          // so the sweep removes any stale row for it.
+          console.warn(`Could not stat ${fullPath}, skipping:`, statError);
+          return;
+        }
 
-        const artistName = common.artist ?? common.albumartist ?? 'Unknown Artist';
-        const artist = await getOrCreateArtist(artistName);
+        const fileMtime = Math.floor(stat.mtimeMs);
+        const existing = existingFileInfo.get(id);
+        if (existing && existing.fileSize === stat.size && existing.fileMtime === fileMtime) {
+          await markTrackSeen(id, scanId);
+          return;
+        }
 
-        const albumName = common.album ?? 'Unknown Album';
-        const album = await getOrCreateAlbum(metadata, albumName, artist, fullPath);
+        try {
+          const metadata = await parseFile(fullPath);
+          const common = metadata.common;
 
-        await upsertTrack({
-          id: trackIdForPath(fullPath),
-          filePath: fullPath,
-          title: common.title ?? path.parse(fullPath).name,
-          artist: artist,
-          album: album,
-          albumArtist: common.albumartist ?? common.artist ?? 'Unknown Artist',
-          genre: Array.isArray(common.genre) ? common.genre.join(', ') : common.genre ?? null,
-          year: common.year ?? null,
-          duration: metadata.format.duration ?? null,
-          trackNumber: common.track?.no,
-          diskNumber: common.disk?.no,
-        }, scanId);
-      } catch (metaError) {
-        console.warn(`Could not parse metadata for ${fullPath}: `, metaError);
-        await upsertTrack({
-          id: trackIdForPath(fullPath),
-          filePath: fullPath,
-          title: path.parse(fullPath).name,
-          artist: null,
-          album: null,
-          albumArtist: null,
-          genre: null, year: null, duration: null, trackNumber: null, diskNumber: null
-        }, scanId);
+          const artistName = common.artist ?? common.albumartist ?? 'Unknown Artist';
+          const artist = await getOrCreateArtist(artistName);
+
+          const albumName = common.album ?? 'Unknown Album';
+          const album = await getOrCreateAlbum(metadata, albumName, artist, fullPath);
+
+          await upsertTrack({
+            id,
+            filePath: fullPath,
+            title: common.title ?? path.parse(fullPath).name,
+            artist: artist,
+            album: album,
+            albumArtist: common.albumartist ?? common.artist ?? 'Unknown Artist',
+            genre: Array.isArray(common.genre) ? common.genre.join(', ') : common.genre ?? null,
+            year: common.year ?? null,
+            duration: metadata.format.duration ?? null,
+            trackNumber: common.track?.no,
+            diskNumber: common.disk?.no,
+          }, scanId, stat.size, fileMtime);
+        } catch (metaError) {
+          console.warn(`Could not parse metadata for ${fullPath}: `, metaError);
+          await upsertTrack({
+            id,
+            filePath: fullPath,
+            title: path.parse(fullPath).name,
+            artist: null,
+            album: null,
+            albumArtist: null,
+            genre: null, year: null, duration: null, trackNumber: null, diskNumber: null
+          }, scanId, stat.size, fileMtime);
+        }
       } finally {
         processedFiles++;
         onProgress({ total: totalFiles, processed: processedFiles });

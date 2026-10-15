@@ -30,6 +30,8 @@ export async function createTables() {
       duration REAL,
       trackNumber INTEGER,
       diskNumber INTEGER,
+      fileSize INTEGER,
+      fileMtime INTEGER,
       lastScanId TEXT,
       FOREIGN KEY (album_id) REFERENCES albums(id),
       FOREIGN KEY (artist_id) REFERENCES artists(id)
@@ -88,6 +90,12 @@ export async function createTables() {
   if (!trackColumns.some((column) => column.name === 'lastScanId')) {
     await db.exec('ALTER TABLE tracks ADD COLUMN lastScanId TEXT');
   }
+  if (!trackColumns.some((column) => column.name === 'fileSize')) {
+    await db.exec('ALTER TABLE tracks ADD COLUMN fileSize INTEGER');
+  }
+  if (!trackColumns.some((column) => column.name === 'fileMtime')) {
+    await db.exec('ALTER TABLE tracks ADD COLUMN fileMtime INTEGER');
+  }
 
   await updateSettings({ databasePath })
 }
@@ -141,12 +149,12 @@ export async function getTrack(id: string): Promise<Track | undefined> {
   return track;
 }
 
-export async function upsertTrack(track: Track, scanId: string) {
+export async function upsertTrack(track: Track, scanId: string, fileSize: number, fileMtime: number) {
   const db = await openDb();
   return db.run(
     `INSERT OR REPLACE INTO tracks
-      (id, filePath, title, artist_id, album_id, albumArtist, genre, year, duration, trackNumber, diskNumber, lastScanId)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, filePath, title, artist_id, album_id, albumArtist, genre, year, duration, trackNumber, diskNumber, fileSize, fileMtime, lastScanId)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       track.id,
       track.filePath,
@@ -159,8 +167,22 @@ export async function upsertTrack(track: Track, scanId: string) {
       track.duration,
       track.trackNumber,
       track.diskNumber,
+      fileSize,
+      fileMtime,
       scanId,
     ]
+  );
+}
+
+export async function markTrackSeen(id: string, scanId: string) {
+  const db = await openDb();
+  return db.run('UPDATE tracks SET lastScanId = ? WHERE id = ?', [scanId, id]);
+}
+
+export async function getTrackFileInfo(): Promise<{ id: string; fileSize: number | null; fileMtime: number | null }[]> {
+  const db = await openDb();
+  return db.all<{ id: string; fileSize: number | null; fileMtime: number | null }[]>(
+    'SELECT id, fileSize, fileMtime FROM tracks'
   );
 }
 

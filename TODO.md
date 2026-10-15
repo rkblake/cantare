@@ -34,7 +34,7 @@
 ## Library scanning improvements
 - [x] prevent concurrent scans (scan-in-progress lock)
 - [x] non-destructive scan: upsert tracks and sweep only files that no longer exist (don't clear the library first)
-- [ ] incremental scanning: skip unchanged files using file mtime/size
+- [x] incremental scanning: skip unchanged files using file mtime/size
 - [ ] batch DB writes in a transaction and tune PRAGMAs (WAL, synchronous=NORMAL)
 - [ ] group albums by albumartist so compilations aren't split per track artist
 - [ ] skip re-extracting artwork when it already exists; dedupe concurrent extraction per album
