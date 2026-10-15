@@ -40,6 +40,7 @@ export async function createTables() {
       artist_id TEXT,
       year INTEGER,
       artworkPath TEXT,
+      artworkThumbPath TEXT,
       FOREIGN KEY (artist_id) REFERENCES artists(id),
       UNIQUE(name, artist_id)
     );
@@ -77,6 +78,11 @@ export async function createTables() {
   }
   await db.exec('UPDATE playlist_tracks SET position = rowid WHERE position IS NULL');
 
+  const albumColumns = await db.all<{ name: string }[]>('PRAGMA table_info(albums)');
+  if (!albumColumns.some((column) => column.name === 'artworkThumbPath')) {
+    await db.exec('ALTER TABLE albums ADD COLUMN artworkThumbPath TEXT');
+  }
+
   await updateSettings({ databasePath })
 }
 
@@ -85,7 +91,7 @@ export async function getTracks(): Promise<Track[]> {
   let tracks = await db.all<Track[]>(`
     SELECT
       t.*,
-      CASE WHEN a.id IS NOT NULL THEN json_object('id', a.id, 'name', a.name, 'artworkPath', a.artworkPath) ELSE NULL END as album,
+      CASE WHEN a.id IS NOT NULL THEN json_object('id', a.id, 'name', a.name, 'artworkPath', a.artworkPath, 'artworkThumbPath', a.artworkThumbPath) ELSE NULL END as album,
       CASE WHEN art.id IS NOT NULL THEN json_object('id', art.id, 'name', art.name) ELSE NULL END as artist
     FROM
       tracks AS t
@@ -109,7 +115,7 @@ export async function getTrack(id: string): Promise<Track | undefined> {
   const track = await db.get<Track>(`
     SELECT
       t.*,
-      CASE WHEN a.id IS NOT NULL THEN json_object('id', a.id, 'name', a.name, 'artworkPath', a.artworkPath) ELSE NULL END as album,
+      CASE WHEN a.id IS NOT NULL THEN json_object('id', a.id, 'name', a.name, 'artworkPath', a.artworkPath, 'artworkThumbPath', a.artworkThumbPath) ELSE NULL END as album,
       CASE WHEN art.id IS NOT NULL THEN json_object('id', art.id, 'name', art.name) ELSE NULL END as artist
     FROM
       tracks AS t
@@ -169,7 +175,8 @@ export async function getAlbums(page = 1, limit = 20): Promise<Album[]> {
       album.id,
       album.name,
       art.name AS artist,
-      album.artworkPath
+      album.artworkPath,
+      album.artworkThumbPath
     FROM
       albums AS album
     JOIN
@@ -186,7 +193,8 @@ export async function getAllAlbums(): Promise<Album[]> {
       album.id,
       album.name,
       art.name AS artist,
-      album.artworkPath
+      album.artworkPath,
+      album.artworkThumbPath
     FROM
       albums AS album
     JOIN
@@ -204,7 +212,8 @@ export async function getAlbum(id: string): Promise<Album | undefined> {
       art.name AS artist,
       alb.artist_id,
       alb.year,
-      alb.artworkPath
+      alb.artworkPath,
+      alb.artworkThumbPath
     FROM
       albums AS alb
     JOIN
@@ -223,8 +232,8 @@ export async function getAlbum(id: string): Promise<Album | undefined> {
 export async function createAlbum(album: Album) {
   const db = await openDb();
   return db.run(
-    'INSERT OR IGNORE INTO albums (id, name, artist_id, year, artworkPath) VALUES (?, ?, ?, ?, ?)',
-    [album.id, album.name, album.artist_id, album.year, album.artworkPath]
+    'INSERT OR IGNORE INTO albums (id, name, artist_id, year, artworkPath, artworkThumbPath) VALUES (?, ?, ?, ?, ?, ?)',
+    [album.id, album.name, album.artist_id, album.year, album.artworkPath, album.artworkThumbPath]
   );
 }
 
@@ -284,6 +293,23 @@ export async function clearMusicData() {
 export async function deleteOrphanedPlaylistTracks() {
   const db = await openDb();
   await db.run('DELETE FROM playlist_tracks WHERE track_id NOT IN (SELECT id FROM tracks)');
+}
+
+export async function getArtworkPaths(): Promise<string[]> {
+  const db = await openDb();
+  const rows = await db.all<{ artworkPath: string | null; artworkThumbPath: string | null }[]>(
+    'SELECT artworkPath, artworkThumbPath FROM albums'
+  );
+  const paths: string[] = [];
+  for (const row of rows) {
+    if (row.artworkPath) {
+      paths.push(row.artworkPath);
+    }
+    if (row.artworkThumbPath) {
+      paths.push(row.artworkThumbPath);
+    }
+  }
+  return paths;
 }
 
 export async function getPlaylistTrackPaths(): Promise<{ playlist_id: string; track_id: string; filePath: string }[]> {
@@ -416,7 +442,7 @@ export async function getTracksFromAlbum(album: Album): Promise<Track[] | undefi
   const tracks = await db.all<Track[]>(`
     SELECT
       t.*,
-      json_object('id', alb.id, 'name', alb.name, 'artworkPath', alb.artworkPath) as album,
+      json_object('id', alb.id, 'name', alb.name, 'artworkPath', alb.artworkPath, 'artworkThumbPath', alb.artworkThumbPath) as album,
       json_object('id', art.id, 'name', art.name) as artist
     FROM
       tracks as t
@@ -450,6 +476,7 @@ export async function getAlbumsFromArtist(artist: Artist): Promise<Album[] | und
       alb.artist_id,
       alb.year,
       alb.artworkPath,
+      alb.artworkThumbPath,
       art.name AS artist
     FROM
       albums AS alb
@@ -468,7 +495,7 @@ export async function getTracksFromPlaylist(playlist: Playlist): Promise<Track[]
   const tracks = await db.all<Track[]>(`
     SELECT
       t.*,
-      json_object('id', alb.id, 'name', alb.name, 'artworkPath', alb.artworkPath) as album,
+      json_object('id', alb.id, 'name', alb.name, 'artworkPath', alb.artworkPath, 'artworkThumbPath', alb.artworkThumbPath) as album,
       json_object('id', art.id, 'name', art.name) as artist
     FROM
       tracks as t

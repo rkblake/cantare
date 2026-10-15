@@ -1,9 +1,10 @@
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
+import sharp from 'sharp';
 import { parseFile } from 'music-metadata';
 import type { Track, Album, Artist } from '@/types';
-import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
+import { v5 as uuidv5 } from 'uuid';
 import type { IAudioMetadata } from 'music-metadata';
 import {
   createAlbum,
@@ -13,36 +14,127 @@ import {
   getArtistByName,
   clearMusicData,
   deleteOrphanedPlaylistTracks,
+  getArtworkPaths,
   getPlaylistTrackPaths,
   remapPlaylistTrack
 } from "@/database/sqlite";
 import { artworkDir } from './paths';
 
-// Stable namespace so the same file path always maps to the same track id,
-// which keeps playlists intact across rescans.
+// Stable namespaces so the same path/name always maps to the same id. This keeps
+// playlists intact and stops artwork files from multiplying across rescans.
 const TRACK_ID_NAMESPACE = '6ba7b811-9dad-11d1-80b4-00c04fd430c8';
+const ARTIST_ID_NAMESPACE = '6ba7b812-9dad-11d1-80b4-00c04fd430c8';
+const ALBUM_ID_NAMESPACE = '6ba7b813-9dad-11d1-80b4-00c04fd430c8';
+
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
 
 function trackIdForPath(filePath: string): string {
   return uuidv5(filePath, TRACK_ID_NAMESPACE);
 }
 
-async function extractArtwork(metadata: IAudioMetadata, albumId: string): Promise<string | undefined> {
-  const picture = metadata.common.picture?.[0];
+function artistIdForName(name: string): string {
+  return uuidv5(name, ARTIST_ID_NAMESPACE);
+}
+
+function albumIdForName(artistId: string, name: string): string {
+  return uuidv5(`${artistId}\u0000${name}`, ALBUM_ID_NAMESPACE);
+}
+
+async function findFolderArtwork(directory: string): Promise<string | undefined> {
+  let entries: string[];
+  try {
+    entries = await fs.readdir(directory);
+  } catch {
+    return undefined;
+  }
+
+  const images = entries.filter((name) =>
+    IMAGE_EXTENSIONS.some((extension) => name.toLowerCase().endsWith(extension))
+  );
+  const find = (predicate: (name: string) => boolean) =>
+    images.find((name) => predicate(name.toLowerCase()));
+
+  const match =
+    find((name) => name.startsWith('cover')) ??
+    find((name) => name.startsWith('folder')) ??
+    find((name) => name.startsWith('front')) ??
+    find((name) => name.startsWith('album') && !name.includes('small')) ??
+    find((name) => name.startsWith('albumart') && name.includes('large')) ??
+    find((name) => name.startsWith('albumart')) ??
+    find((name) => name.startsWith('album'));
+
+  return match ? path.join(directory, match) : undefined;
+}
+
+interface ArtworkPaths {
+  artworkPath: string;
+  artworkThumbPath: string;
+}
+
+async function writeArtwork(source: Buffer, albumId: string): Promise<ArtworkPaths | undefined> {
+  try {
+    await fs.mkdir(artworkDir, { recursive: true });
+    const artworkFile = path.join(artworkDir, `${albumId}.webp`);
+    const artworkThumbFile = path.join(artworkDir, `${albumId}.thumb.webp`);
+
+    await sharp(source)
+      .rotate()
+      .resize(640, 640, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toFile(artworkFile);
+
+    await sharp(source)
+      .rotate()
+      .resize(96, 96, { fit: 'cover' })
+      .webp({ quality: 80 })
+      .toFile(artworkThumbFile);
+
+    return {
+      artworkPath: `/api/artwork/${albumId}.webp`,
+      artworkThumbPath: `/api/artwork/${albumId}.thumb.webp`,
+    };
+  } catch (error) {
+    console.error(`Failed to save artwork for album ${albumId}:`, error);
+    return undefined;
+  }
+}
+
+async function extractArtwork(
+  metadata: IAudioMetadata,
+  albumId: string,
+  trackFilePath: string
+): Promise<ArtworkPaths | undefined> {
+  // Prefer a cover image sitting next to the tracks.
+  const folderArtwork = await findFolderArtwork(path.dirname(trackFilePath));
+  if (folderArtwork) {
+    try {
+      return await writeArtwork(await fs.readFile(folderArtwork), albumId);
+    } catch (error) {
+      console.error(`Failed to read folder artwork ${folderArtwork}:`, error);
+    }
+  }
+
+  // Otherwise fall back to the embedded picture, preferring the front cover.
+  const pictures = metadata.common.picture ?? [];
+  const picture = pictures.find((item) => item.type?.toLowerCase().includes('front')) ?? pictures[0];
   if (!picture) {
     return undefined;
   }
 
+  return writeArtwork(Buffer.from(picture.data), albumId);
+}
+
+async function deleteOrphanedArtwork(): Promise<void> {
   try {
-    await fs.mkdir(artworkDir, { recursive: true });
-    const extension = picture.format.split('/')[1] ?? 'jpg';
-    const artworkPath = path.join(artworkDir, `${albumId}.${extension}`);
-
-    await fs.writeFile(artworkPath, picture.data);
-
-    return `/api/artwork/${albumId}.${extension}`;
+    const referenced = new Set((await getArtworkPaths()).map((artworkPath) => path.basename(artworkPath)));
+    const files = await fs.readdir(artworkDir);
+    await Promise.all(
+      files
+        .filter((name) => !referenced.has(name))
+        .map((name) => fs.unlink(path.join(artworkDir, name)).catch(() => undefined))
+    );
   } catch (error) {
-    console.error(`Failed to save artwork for album ${albumId}:`, error);
-    return undefined;
+    console.error('Failed to clean up orphaned artwork:', error);
   }
 }
 
@@ -53,7 +145,7 @@ async function getOrCreateArtist(artistName: string): Promise<Artist> {
   }
 
   const artist: Artist = {
-    id: uuidv4(),
+    id: artistIdForName(artistName),
     name: artistName,
     albumIds: [],
     trackIds: [],
@@ -67,14 +159,16 @@ async function getOrCreateArtist(artistName: string): Promise<Artist> {
 async function getOrCreateAlbum(
   metadata: IAudioMetadata,
   albumName: string,
-  artist: Artist
+  artist: Artist,
+  trackFilePath: string
 ): Promise<Album> {
   const existing = await getAlbumByNameAndArtistId(albumName, artist.id);
   if (existing) {
     return existing;
   }
 
-  const albumId = uuidv4();
+  const albumId = albumIdForName(artist.id, albumName);
+  const artwork = await extractArtwork(metadata, albumId, trackFilePath);
   const album: Album = {
     id: albumId,
     name: albumName,
@@ -82,7 +176,8 @@ async function getOrCreateAlbum(
     artist_id: artist.id,
     year: metadata.common.year ?? null,
     trackIds: [],
-    artworkPath: await extractArtwork(metadata, albumId),
+    artworkPath: artwork?.artworkPath,
+    artworkThumbPath: artwork?.artworkThumbPath,
   };
   await createAlbum(album);
 
@@ -108,7 +203,7 @@ export async function scanMusicDirectorySql(
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
           await discoverFiles(fullPath);
-        } else if (entry.isFile() && /\.(mp3)$/i.test(entry.name)) { // TODO: add flac|aac|wav
+        } else if (entry.isFile() && /\.(mp3|flac|m4a|aac|ogg|oga|opus|wav|aiff|aif|wma)$/i.test(entry.name)) {
           filesToProcess.push(fullPath);
         }
       }
@@ -130,7 +225,7 @@ export async function scanMusicDirectorySql(
       const artist = await getOrCreateArtist(artistName);
 
       const albumName = common.album ?? 'Unknown Album';
-      const album = await getOrCreateAlbum(metadata, albumName, artist);
+      const album = await getOrCreateAlbum(metadata, albumName, artist, fullPath);
 
       const track: Track = {
         id: trackIdForPath(fullPath),
@@ -185,5 +280,8 @@ export async function scanMusicDirectorySql(
 
   // Remove playlist entries whose files no longer exist after the rescan.
   await deleteOrphanedPlaylistTracks();
+
+  // Remove artwork files no longer referenced by any album.
+  await deleteOrphanedArtwork();
 }
 

@@ -7,8 +7,14 @@ const mimeTypes: Record<string, string> = {
   '.mp3': 'audio/mpeg',
   '.flac': 'audio/flac',
   '.ogg': 'audio/ogg',
+  '.oga': 'audio/ogg',
+  '.opus': 'audio/ogg',
   '.wav': 'audio/wav',
   '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.aiff': 'audio/aiff',
+  '.aif': 'audio/aiff',
+  '.wma': 'audio/x-ms-wma',
 };
 
 export async function GET(req: NextRequest) {
